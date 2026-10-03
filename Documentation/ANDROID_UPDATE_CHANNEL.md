@@ -8,9 +8,11 @@ The official public Android repository is https://github.com/leoxcho/akito-stati
 
 Publication review configuration:
 - Repository: leoxcho/akito-station-android
-- Tag: android-v1.0.0
-- APK asset: Akito-Station-Android-v1.0.0.apk (owner-signed only)
-- versionCode: 1; next 1.0.1 uses 2; formula `(major-1)*10000 + minor*100 + patch + 1`.
+- Tag: android-v1.0.1
+- APK asset: Akito-Station-Android-v1.0.1.apk (owner-signed only)
+- versionCode: 2; 1.0.0 uses 1; formula `(major-1)*10000 + minor*100 + patch + 1`.
 - Add SHA256SUMS and reviewed release notes; never upload LOCAL-REVIEW, UNSIGNED, keystores or local logs.
 
 Before future updates, test offline, rate-limit, 404, empty releases, mixed macOS/Android metadata, digest absence, malformed URLs and a same-certificate upgrade. Owner-approved repository configuration is prepared locally; live endpoint verification is performed after the owner-authorized release is published.
+
+1.0.1 uses build 2. Tests confirm the checker offers it to build 1 and excludes it from build 2. Anonymous live channel verification follows publication.

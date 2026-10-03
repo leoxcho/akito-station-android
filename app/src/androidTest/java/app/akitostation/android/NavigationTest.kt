@@ -47,4 +47,50 @@ class NavigationTest {
   org.junit.Assert.assertEquals(0L, saved.lastLaunched)
   verify.removeRoot(game.root); verify.close()
  }
+ @Test fun artworkConsentCancelAndControllerNavigation() {
+  val db = LibraryDatabase(compose.activity)
+  val game = Game("art-consent-record", "content://missing-provider/art", "art-test-root", "Artwork consent game", Platform.GBA)
+  db.mergeRoot(game.root, listOf(game)); db.close()
+  StationSettings(compose.activity).onlineArtwork = false
+  compose.activityRule.scenario.recreate()
+  compose.waitUntil(5000) { compose.onAllNodesWithText(game.title).fetchSemanticsNodes().isNotEmpty() }
+  compose.onNodeWithText(game.title).performClick()
+  compose.onNodeWithText("Search Cover Art").performScrollTo().performClick()
+  compose.onNodeWithText("Online cover-art privacy").assertIsDisplayed()
+  compose.onNodeWithText("Cancel").performClick()
+  org.junit.Assert.assertFalse(StationSettings(compose.activity).onlineArtwork)
+  compose.onNodeWithText("Search Cover Art").performClick()
+  compose.onNodeWithText("Allow and continue").performClick()
+  compose.waitUntil(5000) { StationSettings(compose.activity).onlineArtwork }
+  compose.onNodeWithText("Cover search title").assertTextContains(game.title)
+  compose.onNodeWithText("Apply cover").assertIsNotEnabled()
+  compose.onNodeWithText("Done").performClick()
+  compose.onNodeWithText("Change cover").assertExists()
+  androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_DPAD_DOWN)
+  androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BUTTON_B)
+  LibraryDatabase(compose.activity).use { it.removeRoot(game.root) }
+  StationSettings(compose.activity).onlineArtwork = false
+ }
+ @Test fun liveCoverSearchApplyAndImmediateLibraryRefresh() {
+  val game = Game("live-cover-record", "content://missing-provider/live", "live-cover-root", "Pokemon Emerald Version", Platform.GBA)
+  LibraryDatabase(compose.activity).use { it.mergeRoot(game.root, listOf(game)) }
+  StationSettings(compose.activity).onlineArtwork = true
+  compose.activityRule.scenario.recreate()
+  compose.waitUntil(5000) { compose.onAllNodesWithText(game.title).fetchSemanticsNodes().isNotEmpty() }
+  compose.onNodeWithText(game.title).performClick()
+  compose.onNodeWithText("Search Cover Art").performScrollTo().performClick()
+  compose.onNodeWithText("Search", substring = false).performClick()
+  compose.waitUntil(60000) { compose.onAllNodes(hasText("Pokemon - Emerald Version", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+  compose.onAllNodes(hasText("Pokemon - Emerald Version", substring = true))[0].performClick()
+  compose.onNodeWithText("Apply cover").performClick()
+  compose.waitUntil(30000) { LibraryDatabase(compose.activity).use { db -> db.games().first { it.id == game.id }.artwork.isNotBlank() } }
+  compose.waitUntil(5000) { compose.onAllNodesWithText("Game title").fetchSemanticsNodes().isNotEmpty() }
+  compose.onNodeWithText("Done").performClick()
+  compose.onNodeWithContentDescription("Cover for " + game.title).assertExists()
+  LibraryDatabase(compose.activity).use { db ->
+   val saved = db.games().first { it.id == game.id }; org.junit.Assert.assertTrue(java.io.File(saved.artwork).exists())
+   org.junit.Assert.assertNotNull(android.graphics.BitmapFactory.decodeFile(saved.artwork)); db.removeRoot(game.root)
+  }
+  StationSettings(compose.activity).onlineArtwork = false
+ }
 }

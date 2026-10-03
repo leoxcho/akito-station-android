@@ -9,3 +9,5 @@ StationLogo.png is copied from the owner-provided Akito Station public branding 
 APK dependency license details are also retained by library META-INF notices where packaged; complete upstream license texts are prepared under `licenses/` for source distribution.
 
 Original Akito Station Android code is Apache-2.0 within LICENSE_SCOPE.json. Branding remains owner-controlled. The Gradle wrapper scripts/JAR are distributed under Gradle’s Apache-2.0 license; see LICENSE and https://github.com/gradle/gradle/blob/master/LICENSE. No emulator source was incorporated to implement external intent contracts.
+
+Online cover art is retrieved on demand from Libretro Thumbnails (https://thumbnails.libretro.com/). Cover images retain their respective owners' rights; third-party covers are not bundled with Akito.

@@ -1,0 +1,7 @@
+# Cover search
+
+From game editing choose Search Cover Art. Consent defaults off; the disclosure also appears in Settings. Enter/refine the prefilled game title, search the current system or choose All systems. Select a result then Apply cover. Artwork is downloaded within a 16 MB limit and validated against raster image dimension limits, saved atomically under a fresh private filename, recorded in the existing database and emitted through library state. New filenames avoid stale image-cache keys. Local import uses the same storage validation.
+
+The Android implementation follows the macOS editor and Libretro directory provider behavior. It deliberately uses only the official Libretro directory provider, not the macOS TheGamesDB HTML fallback. Catalogs are cached in memory, requests are spaced, failures impose a cooldown, connections time out, redirects and foreign/traversal URLs are rejected, and responses are bounded. Queries strip recognized dump tags, fold accents/punctuation/case, preserve legitimate parenthesized words and sequel numbers, and match whole tokens. All systems includes editions for other systems. Maximum 120 results. No-result and network/provider failures are distinct and offer retry/local import.
+
+All adapter platforms are mapped; recognized platforms without an available catalog may report no results/provider failure. Availability is not guaranteed. No automatic/bulk scraping or remote accounts. Runtime routing remains unchanged.

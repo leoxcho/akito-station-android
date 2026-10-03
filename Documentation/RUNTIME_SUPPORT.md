@@ -30,3 +30,5 @@ Primary interface evidence:
 Version changes in third-party apps may break these interfaces. Multi-file CUE discs, archives, BIOS-dependent systems and saves may require granting the emulator its own library folder access; a URI grant for one game does not grant sibling files. Test legal single-file/homebrew content first, then representative multi-file content. Install required BIOS yourself where lawful. Akito never supplies or copies it.
 
 PS1/PS2/PS3/PS4/Vita/3DS/Dreamcast/Wii U/Xbox/Xbox 360/Switch are library categories, not built-in Android gameplay claims. Compatible custom external apps can be registered with package, exported activity and MIME type. Unsupported systems, embedded rendering, emulator-owned save managers and additional adapters are post-1.0 work. SkyEmu, DuckStation and RetroArch were not added on guessed interfaces.
+
+Online cover search is independent of runtime support. All listed runtime systems and recognized library systems can search Libretro catalogs where available. See COVER_SEARCH.md.

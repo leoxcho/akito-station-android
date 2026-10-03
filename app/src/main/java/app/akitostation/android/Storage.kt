@@ -50,12 +50,16 @@ class ArtworkStorage(private val context: Context) {
  fun import(uri: Uri, id: String): String {
   require(uri.scheme == "content") { "Choose an image through the document picker" }
   val bytes = context.contentResolver.openInputStream(uri)?.use { input -> input.readBounded(16 * 1024 * 1024 + 1) } ?: error("Image unavailable")
+  return save(bytes, id)
+ }
+ fun save(bytes: ByteArray, id: String): String {
+  require(id.matches(Regex("[A-Za-z0-9_-]+"))) { "Invalid artwork identifier" }
   require(bytes.size <= 16 * 1024 * 1024) { "Cover must be smaller than 16 MB" }
   val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
   BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
   require(bounds.outWidth in 1..8192 && bounds.outHeight in 1..8192) { "Unsupported or oversized cover image" }
   val dir = File(context.filesDir, "covers").apply { mkdirs() }
-  val file = File(dir, "$id.cover"); val tmp = File(dir, "$id.tmp")
+  val file = File(dir, "$id-${java.util.UUID.randomUUID()}.cover"); val tmp = File(dir, "$id.tmp")
   tmp.writeBytes(bytes); check(tmp.renameTo(file)) { "Could not save cover" }
   return file.absolutePath
  }

@@ -7,8 +7,9 @@ p = argparse.ArgumentParser()
 p.add_argument('--keystore', type=Path, required=True)
 p.add_argument('--alias', default='akito-android')
 p.add_argument('--fingerprint', required=True, help='Expected SHA-256 certificate fingerprint from owner records')
+p.add_argument('--version', choices=['1.0.0', '1.0.1'], default='1.0.0')
 a = p.parse_args()
-source = root / 'release-candidate/Akito-Station-Android-v1.0.0-UNSIGNED.apk'
+source = root / f'release-candidate/Akito-Station-Android-v{a.version}-UNSIGNED.apk'
 tools = root / '.tools/sdk/build-tools/36.0.0'
 env = os.environ.copy()
 env['JAVA_HOME'] = str(root / '.tools/jdk-17.0.20.1+1/Contents/Home')
@@ -24,9 +25,9 @@ with tempfile.TemporaryDirectory(dir=out) as temp:
  result = subprocess.run([str(tools/'apksigner'), 'verify', '--verbose', '--print-certs', str(signed)], env=env, capture_output=True, text=True, check=True)
  if 'CN=Android Debug' in result.stdout or f'certificate SHA-256 digest: {expected}' not in result.stdout: raise SystemExit('Rejected: development certificate or unexpected owner fingerprint')
  subprocess.run([str(tools/'zipalign'), '-c', '-P', '16', '4', str(signed)], check=True)
- final = out/'Akito-Station-Android-v1.0.0.apk'
+ final = out/f'Akito-Station-Android-v{a.version}.apk'
  if final.exists(): raise SystemExit('Output already exists; preserve/review it before another signing attempt')
  signed.rename(final)
  final.chmod(0o600)
- (out/'SIGNATURE.txt').write_text(result.stdout)
+ (out/f'SIGNATURE-v{a.version}.txt').write_text(result.stdout)
  print('Owner-signed candidate prepared locally. Device acceptance and publication review remain required.')

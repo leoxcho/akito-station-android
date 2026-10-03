@@ -130,6 +130,10 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
 @Composable private fun GameDialog(game: Game, state: StationState, model: StationViewModel, dismiss: () -> Unit) {
  var title by remember(game.id) { mutableStateOf(game.displayTitle) }
  var system by remember(game.id) { mutableStateOf(game.system) }
+ var searching by remember { mutableStateOf(false) }
+ var consent by remember { mutableStateOf(false) }
+ if(searching) { CoverSearchDialog(game, title, system, model, { searching = false }); return }
+ if(consent) AlertDialog(onDismissRequest = { consent = false }, title = { Text("Online cover-art privacy") }, text = { Text(CoverPrivacy) }, confirmButton = { Button(onClick = { model.onlineArtwork(true); consent = false; searching = true }) { Text("Allow and continue") } }, dismissButton = { TextButton(onClick = { consent = false }) { Text("Cancel") } })
  val artPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri != null) model.artwork(game, uri) }
  AlertDialog(onDismissRequest = dismiss, title = { Text(game.displayTitle) }, text = {
   Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -141,6 +145,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    SystemPicker(system, { if(it != null) system = it })
    TextButton(onClick = { model.metadata(game, title, system) }) { Text("Save metadata") }
    Row { TextButton(onClick = { model.favorite(game) }) { Text(if(game.favorite) "Unfavorite" else "Favorite") }; TextButton(onClick = { artPicker.launch(arrayOf("image/*")) }) { Text("Change cover") } }
+   OutlinedButton(onClick = { if(state.onlineArtwork) searching = true else consent = true }) { Text("Search Cover Art") }
    TextButton(onClick = { model.resetArtwork(game) }) { Text("Remove cover") }
   }
  }, confirmButton = { Button(onClick = { model.launch(game); dismiss() }) { Icon(Icons.Default.PlayArrow, null); Text("Play") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Done") } })
@@ -208,6 +213,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    Text("Missing files stay in your library so metadata survives disconnected storage. Reconnect the volume or reselect its folder before launching.", style = MaterialTheme.typography.bodySmall)
   } }
   item { SettingsPanel("Appearance") { Row(verticalAlignment = Alignment.CenterVertically) { Text("Compact game cards", Modifier.weight(1f)); Switch(state.compact, model::compact) } } }
+  item { SettingsPanel("Online cover art") { Text(CoverPrivacy); Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow online artwork search", Modifier.weight(1f)); Switch(state.onlineArtwork, model::onlineArtwork) } } }
   item { SettingsPanel("Controllers") { Text(controller); Text("D-pad / left stick moves focus. A selects; B goes back. Emulators manage gameplay mappings.") } }
   item { SettingsPanel("Android updates") {
    OutlinedTextField(repository, { repository = it }, label = { Text("Official GitHub owner/repository") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -220,7 +226,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    Text("Android ${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}")
    Text("Public library and external launching are available. PRO purchases and entitlement verification are not connected on Android. No local setting unlocks PRO.")
   } }
-  item { SettingsPanel("Privacy & preservation") { Text("No analytics, accounts, advertisements or game uploads. Networking occurs only when you request an update check. Unregistering a library or emulator never deletes your original games, firmware or saves. Uninstalling Akito removes its private metadata and imported covers.") } }
+  item { SettingsPanel("Privacy & preservation") { Text("No analytics, accounts, advertisements or game uploads. Networking occurs when you request an update check or consent to online cover search. Unregistering a library or emulator never deletes your original games, firmware or saves. Uninstalling Akito removes its private metadata and imported covers.") } }
  }
  if(removing != null) AlertDialog(onDismissRequest = { removing = null }, title = { Text("Unregister library?") }, text = { Text("Remove ${removing!!.name} and its metadata from Akito Station. Original files stay untouched.") }, confirmButton = { TextButton(onClick = { model.removeRoot(removing!!); removing = null }) { Text("Unregister") } }, dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel") } })
 }

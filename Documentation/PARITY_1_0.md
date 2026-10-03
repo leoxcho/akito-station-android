@@ -8,6 +8,8 @@ Native library browsing, bounded recursive import, system identification/manual 
 
 ## Optional / post-1.0
 
-Integrated online artwork search and bulk scraping, cosmetic themes and desktop layouts, PRO accounts/payment/restore, cloud/metadata backup, achievements, play-time measurement, save-state/profile browsers, embedded emulator rendering, automated runtime installation/updating and further system adapters. Existing local artwork editing is usable without online search. PRO is not sold or advertised as active. These gaps do not block a free Android frontend 1.0 candidate.
+Bulk scraping, cosmetic themes and desktop layouts, PRO accounts/payment/restore, cloud/metadata backup, achievements, play-time measurement, save-state/profile browsers, embedded emulator rendering, automated runtime installation/updating and further system adapters. Existing local artwork editing is usable without online search. PRO is not sold or advertised as active. These gaps do not block a free Android frontend 1.0 candidate.
 
-Browser cover search was proposed but not applied: automatic approval review rejected transmitting title/system data to Google without explicit owner authorization. It remains optional, and no title was sent.
+The earlier Google browser-search proposal was not applied. Android 1.0.1 resolves online artwork privacy through explicit saved consent and native Libretro catalog search; no Google requests are made.
+
+Android 1.0.1 implements integrated online artwork search with saved consent, native results selection/application and immediate card refresh; see COVER_SEARCH.md.

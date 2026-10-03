@@ -1,12 +1,14 @@
 # Akito Station for Android
 
-Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.0, build 1.
+Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.1, build 2.
 
 The Public edition provides a unified, local game library and explicit external emulator handoff. No emulator, game, BIOS, console firmware or encryption key is bundled. The dark navy/violet, red/cyan palette, Station logo, collection grid and library navigation follow the macOS Public reference. Android uses document-provider access instead of desktop filesystem paths.
 
 ## Implemented
 
 - Adaptive cover grid, search by title/system, All games / Favorites / Recently launched, system filtering and title/recent/system sorting.
+- Consent-gated Search Cover Art, platform-aware Libretro matching, native results selection and immediate card refresh; local cover import remains available.
+- Consent-gated Search Cover Art, platform-aware Libretro matching, native results selection and immediate card refresh; local cover import remains available.
 - SQLite metadata persistence, stable document identities, favorites, launch timestamps, editable title/system and bounded cover-image import.
 - Multiple folder libraries via Android Storage Access Framework; recursive scanning, cancellation and bounded traversal; sibling artwork discovery. Failed/offline scans preserve existing metadata and never delete originals.
 - Explicit per-system emulator selection, 12 built-in external app adapters (PPSSPP/Gold, Dolphin, melonDS, Mupen64Plus-AE alpha and seven EX-family apps), custom package/activity/MIME registrations for compatible ACTION_VIEW apps; no fallback selection.
@@ -19,7 +21,7 @@ Install JDK 17, Android SDK platform 36 and build-tools 36.0.0. Use `./gradlew c
 
 `assembleRelease` is **unsigned** without owner signing environment variables. See `Documentation/PRODUCTION_SIGNING.md` for the preferred fingerprint-checked offline signing script. Existing optional Gradle production signing accepts `AKITO_SIGNING_STORE`, `AKITO_SIGNING_STORE_PASSWORD`, `AKITO_SIGNING_ALIAS`, `AKITO_SIGNING_KEY_PASSWORD`. The owner controls the key; do not commit or ship it. Debug builds use Android's development key and are not production releases. Preserve one owner certificate for all future production updates.
 
-`Scripts/package-candidate.py` prepares local review assets and audits source/APK contents. It does not publish. SDK, Java, emulator images, caches, development keys, local logs and device data in `.tools/` are never included in the source archive or APK.
+`Scripts/package-update.py` audits/stages the 1.0.1 source and unsigned candidate. `Scripts/package-candidate.py` prepares legacy local review assets and audits source/APK contents. It does not publish. SDK, Java, emulator images, caches, development keys, local logs and device data in `.tools/` are never included in the source archive or APK.
 
 ## Runtime scope
 
@@ -27,18 +29,18 @@ See `Documentation/RUNTIME_SUPPORT.md`. Platform identification is broader than 
 
 ## Distribution and updates
 
-Android uses its own tag `android-v1.0.0` and APK `Akito-Station-Android-v1.0.0.apk`. Keep the existing macOS release/assets intact. No publishing automation or upload code is provided.
+Android uses its own update tag `android-v1.0.1` and APK `Akito-Station-Android-v1.0.1.apk`. Keep the existing macOS release/assets intact. No publishing automation or upload code is provided.
 
-The owner-selected official repository defaults to `leoxcho/akito-station-android`. The checker accepts stable Android tags with matching APK version/name, uploaded state, repository-specific HTTPS download path and a GitHub SHA-256 asset digest. It opens release review in a browser; it does not automatically download/install an APK. Drafts, prereleases, macOS packages, older versions, mismatched names and foreign URLs are excluded.
+The owner-selected official repository defaults to `leoxcho/akito-station-android`; the live repository is https://github.com/leoxcho/akito-station-android. The checker accepts stable Android tags with matching APK version/name, uploaded state, repository-specific HTTPS download path and a GitHub SHA-256 asset digest. It opens release review in a browser; it does not automatically download/install an APK. Drafts, prereleases, macOS packages, older versions, mismatched names and foreign URLs are excluded.
 
 ## Honest limitations
 
-No embedded emulation, Play billing, Android PRO account/entitlement integration, online metadata/cover scraping, cloud sync, emulator-specific save management, ROM archive extraction or multi-disc dependency grouping. Ambiguous disc formats require a recognized folder or a user system correction. Systems without an Android-compatible configured runtime remain library-only. Owner confirmed real Android hardware acceptance. Individual runtime gameplay compatibility remains unverified unless separately recorded. See the candidate reports for actual verification results.
+No embedded emulation, Play billing, Android PRO account/entitlement integration, bulk online metadata scraping, cloud sync, emulator-specific save management, ROM archive extraction or multi-disc dependency grouping. Ambiguous disc formats require a recognized folder or a user system correction. Systems without an Android-compatible configured runtime remain library-only. External emulator intent compatibility and removable storage need owner hardware acceptance. See the candidate reports for actual verification results.
 
-The final public APK is owner production-signed; the permanent private key is never distributed. Physical-device acceptance was confirmed by the owner. The temporary development signing key used for local review was removed after validation. A subsequent clean debug build generates a new development certificate. Review APKs are for temporary local testing; only the owner certificate defines the production update identity.
+The final public APK is owner production-signed; the permanent private key is never distributed. Physical-device acceptance for 1.0.0 was confirmed by the owner; this update was validated on ARM64 emulators. The temporary development signing key used for local review was removed after validation. A subsequent clean debug build generates a new development certificate. Review APKs are for temporary local testing; only the owner certificate defines the production update identity.
 
-## Download and license
+## Android 1.0.1 update
 
-Download the production-signed [Android 1.0.0 APK](https://github.com/leoxcho/akito-station-android/releases/download/android-v1.0.0/Akito-Station-Android-v1.0.0.apk). See [installation](Documentation/Release/INSTALLATION.md), [runtime support](Documentation/RUNTIME_SUPPORT.md), [privacy](Documentation/PRIVACY.md), and [limitations](Documentation/Release/KNOWN-LIMITATIONS.md). Akito includes no games, ROMs, BIOS/firmware or console encryption keys.
+Open a game, choose **Search Cover Art**, review the online disclosure, and allow search. Search the prefilled title and system, select a cover in the native adaptive grid, then choose **Apply cover**. All systems broadens the catalog search. Local **Change cover** remains available. Settings → Online cover art reviews or disables permission. Online search uses Libretro Thumbnails official catalogs and searches titles locally. Downloaded covers are stored privately; originals remain unchanged.
 
-Original code uses [Apache-2.0](LICENSE), with [explicit scope](LICENSE_SCOPE.json). Branding and third-party material retain their existing rights; see [notices](THIRD_PARTY_NOTICES.md).
+Version 1.0.1 / code 2 retains app.akitostation.android and database schema 1. Install over production 1.0.0 only after same-certificate upgrade verification; do not uninstall to update. See the 1.0.1 release verification report and published release audit for validation evidence.

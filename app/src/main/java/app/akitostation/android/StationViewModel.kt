@@ -16,10 +16,11 @@ import kotlinx.coroutines.sync.withLock
 data class StationState(val games: List<Game> = emptyList(), val roots: List<LibraryRoot> = emptyList(), val runtimes: List<RuntimeConfig> = builtInRuntimes,
  val selectedRuntimes: Map<Platform, String?> = emptyMap(), val installed: Set<String> = emptySet(), val busy: Boolean = false,
  val activity: String = "Ready", val message: String? = null, val compact: Boolean = false, val sort: SortOrder = SortOrder.TITLE,
- val repository: String = "", val update: AndroidUpdate? = null)
+ val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
 class StationViewModel(application: Application) : AndroidViewModel(application) {
  private val db = LibraryDatabase(application)
  val settings = StationSettings(application)
+ private val coverSearch = CoverSearch({ settings.onlineArtwork })
  private val router = RuntimeRouter(application)
  private val mutable = MutableStateFlow(StationState())
  val state = mutable.asStateFlow()
@@ -30,7 +31,7 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
   val runtimes = builtInRuntimes + settings.custom()
   mutable.update { current -> current.copy(games = db.games(), roots = db.roots(), runtimes = runtimes,
    selectedRuntimes = Platform.entries.associateWith(settings::selected), installed = runtimes.filter(router::installed).map { it.id }.toSet(),
-   compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
+   onlineArtwork = settings.onlineArtwork, compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
  }
  fun refresh() = work { load() }
  private fun work(action: suspend () -> Unit) { viewModelScope.launch(Dispatchers.IO) { try { workMutex.withLock { action() } } catch(e: CancellationException) { throw e } catch(e: Exception) { mutable.update { current -> current.copy(message = e.message ?: "Operation failed") } } } }
@@ -73,6 +74,17 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
  fun favorite(game: Game) = work { db.favorite(game); load() }
  fun metadata(game: Game, title: String, system: Platform) = work { db.metadata(game.id, title, system); load() }
  fun artwork(game: Game, uri: Uri) = work { db.artwork(game.id, ArtworkStorage(getApplication()).import(uri, game.id)); load() }
+ fun onlineArtwork(value: Boolean) = work { settings.onlineArtwork = value; load() }
+ suspend fun searchCovers(query: String, system: Platform, allSystems: Boolean) = withContext(Dispatchers.IO) { coverSearch.search(query, system, allSystems) }
+ suspend fun applyCover(game: Game, result: CoverResult) = withContext(Dispatchers.IO) {
+  workMutex.withLock {
+   check(settings.onlineArtwork) { "Online artwork search disabled" }
+   val bytes = coverSearch.download(result)
+   check(settings.onlineArtwork) { "Online artwork search disabled" }
+   val path = ArtworkStorage(getApplication()).save(bytes, game.id)
+   db.artwork(game.id, path); load()
+  }
+ }
  fun resetArtwork(game: Game) = work { db.artwork(game.id, ""); load() }
  fun launch(game: Game) = work {
   val runtimeId = settings.selected(game.system) ?: error("Choose an emulator for ${game.system.title} in Consoles. No default runtime is selected.")
