@@ -33,9 +33,9 @@ class LibraryScanner(private val context: Context) {
    } }
    val covers = children.filter { it.second.substringAfterLast('.').lowercase() in setOf("png", "jpg", "jpeg", "webp") }.associateBy { it.second.substringBeforeLast('.').lowercase() }
    for ((id, name, info) in children) {
-    if (name.startsWith('.') || name.startsWith("[bios]", true)) continue
+    if (name.startsWith('.') || name.startsWith("[bios]", true) || name.lowercase() in setOf("bios", "firmware", "keys")) continue
     if (info.first == DocumentsContract.Document.MIME_TYPE_DIR) { pending.add(Folder(id, folder.names + name, folder.depth + 1)); continue }
-    if (name.substringAfterLast('.', "").lowercase() !in Platform.scanExtensions) continue
+    if (!Platform.scannable(name, folder.names)) continue
     val doc = DocumentsContract.buildDocumentUriUsingTree(tree, id)
     val header = resolver.openInputStream(doc)?.use { it.readBounded(16) } ?: error("Cannot read selected game")
     val cover = covers[name.substringBeforeLast('.').lowercase()]?.let { DocumentsContract.buildDocumentUriUsingTree(tree, it.first).toString() }.orEmpty()

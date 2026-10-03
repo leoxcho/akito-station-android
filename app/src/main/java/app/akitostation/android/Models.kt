@@ -12,7 +12,7 @@ enum class Platform(val title: String, val aliases: Set<String>, val extensions:
  N64("Nintendo 64", setOf("n64"), setOf("z64", "n64", "v64")),
  NDS("Nintendo DS", setOf("nds", "ds"), setOf("nds")),
  N3DS("Nintendo 3DS", setOf("3ds", "n3ds"), setOf("3ds", "cci")),
- PS1("PlayStation", setOf("ps1", "psx", "playstation"), emptySet()),
+ PS1("PlayStation", setOf("ps1", "psx", "ps", "playstation"), setOf("cue", "chd", "m3u", "bin", "img", "iso", "pbp", "ecm", "mds", "mdf", "ccd", "exe")),
  PS2("PlayStation 2", setOf("ps2", "playstation2"), emptySet()),
  PS3("PlayStation 3", setOf("ps3", "playstation3"), emptySet()),
  PS4("PlayStation 4", setOf("ps4", "playstation4"), emptySet()),
@@ -26,16 +26,25 @@ enum class Platform(val title: String, val aliases: Set<String>, val extensions:
  SWITCH("Nintendo Switch", setOf("switch", "nintendoswitch"), setOf("nsp", "xci", "nro", "nsz", "xcz")),
  UNKNOWN("Unidentified", emptySet(), emptySet());
  companion object {
-  val scanExtensions = entries.flatMap { it.extensions }.toSet() + setOf("iso", "chd", "cue", "m3u", "rvz")
+  val scanExtensions = entries.flatMap { it.extensions }.toSet() + setOf("iso", "chd", "cue", "m3u", "rvz", "bin", "img", "ecm", "mds", "mdf", "ccd", "exe")
+  fun scannable(name: String, folders: List<String> = emptyList()): Boolean {
+   val stem = name.substringBeforeLast('.').lowercase()
+   if(name.startsWith('.') || stem.startsWith("[bios]") || stem.startsWith("scph") || stem in setOf("bios", "firmware", "keys", "prod.keys", "title.keys")) return false
+   val ext = name.substringAfterLast('.', "").lowercase()
+   if(ext !in scanExtensions) return false
+   return ext !in setOf("bin", "img", "exe") || detect(name, folders) == PS1
+  }
   fun detect(name: String, folders: List<String> = emptyList(), header: ByteArray = byteArrayOf()): Platform {
    if (header.take(4) == listOf(0x4e.toByte(), 0x45.toByte(), 0x53.toByte(), 0x1a.toByte())) return NES
    val ext = name.substringAfterLast('.', "").lowercase()
-   entries.firstOrNull { ext in it.extensions }?.let { return it }
+   if(ext !in setOf("cue", "chd", "m3u", "bin", "img", "iso", "pbp", "ecm", "mds", "mdf", "ccd", "exe")) entries.firstOrNull { ext in it.extensions }?.let { return it }
    for (folder in folders.asReversed()) {
     val normalized = folder.lowercase().filter { it.isLetterOrDigit() }
     entries.firstOrNull { normalized in it.aliases || normalized == it.title.lowercase().filter(Char::isLetterOrDigit) }?.let { return it }
    }
-   return UNKNOWN
+   if(ext in setOf("cue", "chd", "m3u", "bin", "img", "iso", "pbp", "ecm", "mds", "mdf", "ccd", "exe")) return UNKNOWN
+   val matches = entries.filter { ext in it.extensions }
+   return matches.singleOrNull() ?: UNKNOWN
   }
  }
 }

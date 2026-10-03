@@ -2,6 +2,8 @@ package app.akitostation.android
 
 import android.content.Intent
 import android.net.Uri
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -105,6 +107,16 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    }
   }
   if(selected != null) GameDialog(selected, state, model, { selectedId = null })
+  if(state.launchGame != null) {
+   var rememberChoice by remember { mutableStateOf(true) }
+   AlertDialog(onDismissRequest = model::dismissLaunch, title = { Text("Choose emulator") }, text = {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+     Text(state.launchGame!!.system.title)
+     state.launchChoices.forEach { runtime -> TextButton(onClick = { model.chooseLaunch(runtime, rememberChoice) }) { Text(runtime.name) } }
+     Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(rememberChoice, { rememberChoice = it }); Text("Remember for this console") }
+    }
+   }, confirmButton = {}, dismissButton = { TextButton(onClick = model::dismissLaunch) { Text("Cancel") } })
+  }
   if(state.message != null) AlertDialog(onDismissRequest = model::dismiss, title = { Text("Akito Station") }, text = { Text(state.message!!) }, confirmButton = { TextButton(onClick = model::dismiss) { Text("OK") } })
  }
 }
@@ -139,7 +151,8 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
   Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
    Text(game.system.title, color = Cyan)
    Text("${game.bytes / 1024 / 1024} MB · ${if(game.lastLaunched == 0L) "Never launched" else "Last launch: " + DateFormat.getDateTimeInstance().format(Date(game.lastLaunched))}")
-   Text("Emulator: " + (state.runtimes.firstOrNull { it.id == state.selectedRuntimes[game.system] }?.name ?: "Choose in Consoles"))
+   val route = runtimeChoice(game.system, state.runtimes, state.installed, state.selectedRuntimes[game.system])
+   Text("Emulator: " + when(route) { is RuntimeChoice.Ready -> route.runtime.name; is RuntimeChoice.Choose -> "Choose when you play"; is RuntimeChoice.Missing -> "No compatible emulator installed" })
    Text("Launch opens an external Android emulator. Saves and gameplay settings are managed by that emulator.", style = MaterialTheme.typography.bodySmall)
    OutlinedTextField(title, { title = it }, label = { Text("Game title") }, singleLine = true)
    SystemPicker(system, { if(it != null) system = it })
@@ -163,8 +176,8 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
     if(choices.isEmpty()) Text("No adapter configured · add a compatible Android app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     choices.forEach { runtime ->
      Row(verticalAlignment = Alignment.CenterVertically) {
-      RadioButton(state.selectedRuntimes[platform] == runtime.id, { model.select(platform, runtime.id) })
-      Text(runtime.name + if(runtime.id in state.installed) " · installed" else if(runtime.builtIn) " · missing" else " · not detected", Modifier.weight(1f))
+      RadioButton(state.selectedRuntimes[platform] == runtime.id, { model.select(platform, runtime.id) }, enabled = runtime.id in state.installed)
+      Text(runtime.name + if(runtime.id in state.installed) " · Installed" else " · Not Installed", Modifier.weight(1f))
       if(!runtime.builtIn) IconButton(onClick = { editing = runtime }) { Icon(Icons.Default.Edit, "Edit ${runtime.name}") }
      }
     }
@@ -172,22 +185,57 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    } }
   }
  }
- if(adding || editing != null) RuntimeEditor(editing, { adding = false; editing = null }, model)
+ if(adding) AddEmulatorDialog(state, { adding = false }, model)
+ if(editing != null) RuntimeEditor(editing, { editing = null }, model)
 }
-@Composable private fun RuntimeEditor(existing: RuntimeConfig?, dismiss: () -> Unit, model: StationViewModel) {
+@Composable private fun AddEmulatorDialog(state: StationState, dismiss: () -> Unit, model: StationViewModel) {
+ var platform by rememberSaveable { mutableStateOf(Platform.PS1) }
+ var advanced by rememberSaveable { mutableStateOf(false) }
+ val choices = remember(platform, state.installed) { model.installedApps(platform) }
+ var selected by remember(platform, choices) { mutableStateOf(choices.filter { it.builtIn }.singleOrNull()?.id) }
+ if(advanced) { RuntimeEditor(null, { advanced = false }, model, platform); return }
+ AlertDialog(onDismissRequest = dismiss, title = { Text("Add Emulator") }, text = {
+  Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+   Text("Select Console")
+   SystemPicker(platform, { if(it != null) platform = it })
+   Text("Select Installed Emulator")
+   if(choices.isEmpty()) Text("No compatible app detected. Install " + builtInRuntimes.filter { platform in it.systems }.joinToString { it.name }.ifBlank { "a compatible emulator" } + " and return here.")
+   choices.forEach { runtime ->
+    val configured = state.runtimes.any { it.packageName == runtime.packageName && platform in it.systems }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+     RadioButton(selected == runtime.id, { selected = runtime.id })
+     EmulatorIcon(runtime)
+     Column(Modifier.weight(1f)) {
+      Text(runtime.name)
+      Text(if(runtime.builtIn) "Already configured automatically" else if(configured) "Already configured" else "Document-opening app; confirm console support", style = MaterialTheme.typography.bodySmall)
+     }
+    }
+   }
+   TextButton(onClick = { advanced = true }) { Text("Advanced / Custom Emulator") }
+  }
+ }, confirmButton = { Button(onClick = { choices.firstOrNull { it.id == selected }?.let { model.addInstalled(platform, it); dismiss() } }, enabled = selected != null) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+}
+@Composable private fun EmulatorIcon(runtime: RuntimeConfig) {
+ val context = LocalContext.current
+ val bitmap = remember(runtime.packageName) { runCatching { context.packageManager.getApplicationIcon(runtime.packageName).toBitmap(40, 40) }.getOrNull() }
+ if(bitmap != null) Image(bitmap.asImageBitmap(), null, Modifier.padding(end = 8.dp).size(32.dp))
+}
+@Composable private fun RuntimeEditor(existing: RuntimeConfig?, dismiss: () -> Unit, model: StationViewModel, initialPlatform: Platform = Platform.NES) {
  var name by remember { mutableStateOf(existing?.name ?: "") }
  var pkg by remember { mutableStateOf(existing?.packageName ?: "") }
  var activity by remember { mutableStateOf(existing?.activity ?: "") }
+ var action by remember { mutableStateOf(existing?.action ?: Intent.ACTION_VIEW) }
  var mime by remember { mutableStateOf(existing?.mime ?: "application/octet-stream") }
  var systems by remember { mutableStateOf(existing?.systems ?: emptySet()) }
- var p by remember { mutableStateOf(Platform.NES) }
+ var p by remember { mutableStateOf(initialPlatform) }
  var error by remember { mutableStateOf<String?>(null) }
- AlertDialog(onDismissRequest = dismiss, title = { Text(if(existing == null) "Add emulator" else "Edit emulator") }, text = {
+ AlertDialog(onDismissRequest = dismiss, title = { Text("Advanced / Custom Emulator") }, text = {
   Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-   Text("Uses Android ACTION_VIEW with a read-only document URI. Your chosen app must support this contract.", style = MaterialTheme.typography.bodySmall)
+   Text("For unsupported/custom emulator applications. Passes a read-only content URI in data and ClipData. Your app must support this contract.", style = MaterialTheme.typography.bodySmall)
    OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
    OutlinedTextField(pkg, { pkg = it }, label = { Text("Package (org.example.emulator)") }, singleLine = true)
    OutlinedTextField(activity, { activity = it }, label = { Text("Exported activity (optional)") }, singleLine = true)
+   OutlinedTextField(action, { action = it }, label = { Text("Intent action") }, singleLine = true)
    OutlinedTextField(mime, { mime = it }, label = { Text("MIME type") }, singleLine = true)
    SystemPicker(p, { if(it != null) p = it })
    TextButton(onClick = { systems = if(p in systems) systems - p else systems + p }) { Text(if(p in systems) "Remove system" else "Add system") }
@@ -196,7 +244,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    if(existing != null) TextButton(onClick = { model.removeRuntime(existing.id); dismiss() }) { Text("Remove registration") }
   }
  }, confirmButton = { TextButton(onClick = {
-  val config = RuntimeConfig(existing?.id ?: UUID.randomUUID().toString(), name.trim(), pkg.trim(), activity.trim(), mime.trim(), systems)
+  val config = RuntimeConfig(existing?.id ?: UUID.randomUUID().toString(), name.trim(), pkg.trim(), activity.trim(), mime.trim(), systems, action = action.trim())
   runCatching { config.validate() }.onSuccess { model.saveRuntime(config); dismiss() }.onFailure { error = it.message }
  }) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }

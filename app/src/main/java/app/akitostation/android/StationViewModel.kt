@@ -15,7 +15,7 @@ import kotlinx.coroutines.sync.withLock
 
 data class StationState(val games: List<Game> = emptyList(), val roots: List<LibraryRoot> = emptyList(), val runtimes: List<RuntimeConfig> = builtInRuntimes,
  val selectedRuntimes: Map<Platform, String?> = emptyMap(), val installed: Set<String> = emptySet(), val busy: Boolean = false,
- val activity: String = "Ready", val message: String? = null, val compact: Boolean = false, val sort: SortOrder = SortOrder.TITLE,
+ val launchGame: Game? = null, val launchChoices: List<RuntimeConfig> = emptyList(), val activity: String = "Ready", val message: String? = null, val compact: Boolean = false, val sort: SortOrder = SortOrder.TITLE,
  val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
 class StationViewModel(application: Application) : AndroidViewModel(application) {
  private val db = LibraryDatabase(application)
@@ -87,11 +87,33 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
  }
  fun resetArtwork(game: Game) = work { db.artwork(game.id, ""); load() }
  fun launch(game: Game) = work {
-  val runtimeId = settings.selected(game.system) ?: error("Choose an emulator for ${game.system.title} in Consoles. No default runtime is selected.")
-  val runtime = (builtInRuntimes + settings.custom()).firstOrNull { it.id == runtimeId } ?: error("Selected emulator was removed; choose another in Consoles")
-  // Main-thread activity launch; recent records only after Android accepts the handoff.
+  val runtimes = builtInRuntimes + settings.custom()
+  when(val choice = runtimeChoice(game.system, runtimes, runtimes.filter(router::installed).map { it.id }.toSet(), settings.selected(game.system))) {
+   is RuntimeChoice.Ready -> handoff(game, choice.runtime)
+   is RuntimeChoice.Choose -> mutable.update { it.copy(launchGame = game, launchChoices = choice.runtimes) }
+   is RuntimeChoice.Missing -> notify(choice.message)
+  }
+ }
+ private suspend fun handoff(game: Game, runtime: RuntimeConfig) {
   withContext(Dispatchers.Main) { router.launch(game, runtime) }
   db.launched(game); load()
+ }
+ fun chooseLaunch(runtime: RuntimeConfig, remember: Boolean) = work {
+  val game = mutable.value.launchGame ?: return@work
+  dismissLaunch()
+  if(remember) settings.select(game.system, runtime.id)
+  handoff(game, runtime)
+ }
+ fun dismissLaunch() { mutable.update { it.copy(launchGame = null, launchChoices = emptyList()) } }
+ fun installedApps(platform: Platform) = router.installedApps(platform)
+ fun addInstalled(platform: Platform, runtime: RuntimeConfig) = work {
+  if(!runtime.builtIn) {
+   val existing = settings.custom().firstOrNull { it.packageName == runtime.packageName }
+   if(existing == null) settings.save(runtime)
+   else if(platform !in existing.systems) settings.save(existing.copy(systems = existing.systems + platform))
+  }
+  val configured = (builtInRuntimes + settings.custom()).first { it.packageName == runtime.packageName && platform in it.systems }
+  settings.select(platform, configured.id); load()
  }
  fun select(platform: Platform, id: String?) = work { settings.select(platform, id); load() }
  fun saveRuntime(runtime: RuntimeConfig) = work { settings.save(runtime); load() }

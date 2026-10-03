@@ -14,4 +14,4 @@ Expected private location: `signing/akito-android-release.jks`. All signing fold
 
 Output: `production-candidate/Akito-Station-Android-v1.0.0.apk`, plus `SIGNATURE.txt`. Hash with `shasum -a 256` and complete the device checklist before publication review. Signing does not publish anything. LOCAL-REVIEW.apk is development-signed and cannot upgrade to the production key. Uninstalling it removes private metadata; preserve original library files and reimport. Test future upgrades using the same production certificate and increasing versionCode.
 
-For 1.0.1 use Scripts/sign-update.command in a local Terminal. Input stays hidden and must never be sent through chat. The candidate must already be built and audited. Output is production-candidate/Akito-Station-Android-v1.0.1.apk; the old production APK remains intact.
+For 1.0.2 use Scripts/sign-update.command in a local Terminal. Input stays hidden and must never be sent through chat. The candidate must already be built and audited. Output is production-candidate/Akito-Station-Android-v1.0.2.apk; the old production APK remains intact.

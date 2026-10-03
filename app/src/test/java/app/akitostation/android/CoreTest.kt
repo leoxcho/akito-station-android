@@ -3,11 +3,11 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.io.ByteArrayInputStream
 class CoreTest {
- @Test fun extensionDetection() { for(p in Platform.entries) for(ext in p.extensions) assertEquals(p, Platform.detect("Game.$ext")) }
+ @Test fun extensionDetection() { for(p in Platform.entries) for(ext in p.extensions) assertEquals(p, Platform.detect("Game.$ext", listOf(p.title))) }
  @Test fun ambiguousDiscNeedsSystem() { assertEquals(Platform.UNKNOWN, Platform.detect("Game.iso")); assertEquals(Platform.PS2, Platform.detect("Game.iso", listOf("Games", "PlayStation 2"))) }
  @Test fun nearestFolderWins() { assertEquals(Platform.PSP, Platform.detect("Game.iso", listOf("ps2", "psp"))) }
  @Test fun headerWins() { assertEquals(Platform.NES, Platform.detect("Game.iso", listOf("ps2"), byteArrayOf(0x4e,0x45,0x53,0x1a))) }
- @Test fun scanningAvoidsFirmwareExtensions() { assertFalse("bin" in Platform.scanExtensions); assertFalse("keys" in Platform.scanExtensions) }
+ @Test fun scanningAvoidsFirmwareExtensions() { assertFalse(Platform.scannable("keys.bin", listOf("PS1"))); assertFalse(Platform.scannable("scph5501.bin", listOf("PS1"))); assertFalse(Platform.scannable("Game.bin")); assertTrue(Platform.scannable("Game.bin", listOf("PS1"))); assertFalse("keys" in Platform.scanExtensions) }
  @Test fun stableIdentity() { assertEquals(stableId("content://a/1"), stableId("content://a/1")); assertNotEquals(stableId("content://a/1"), stableId("content://a/2")); assertEquals(64, stableId("test").length) }
  private val games = listOf(Game("a","content://a/1","r","Zelda",Platform.NES, favorite = true), Game("b","content://a/2","r","Alpha",Platform.PSP,lastLaunched = 10), Game("c","content://a/3","r","Beta",Platform.PS2,customTitle = "Custom"))
  @Test fun favoritesFilter() { assertEquals(listOf("a"), visibleGames(games,"",LibraryFilter.FAVORITES,null,SortOrder.TITLE).map { it.id }) }

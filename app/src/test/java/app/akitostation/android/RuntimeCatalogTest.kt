@@ -14,8 +14,8 @@ class RuntimeCatalogTest {
  @Test fun catalogRoutesEveryDeclaredSystemWithReadOnlyDocumentGrant() {
   val context = ApplicationProvider.getApplicationContext<Context>()
   val router = RuntimeRouter(context)
-  assertEquals(12, builtInRuntimes.size)
-  assertEquals(12, builtInRuntimes.map { it.packageName }.distinct().size)
+  assertEquals(13, builtInRuntimes.size)
+  assertEquals(13, builtInRuntimes.map { it.packageName }.distinct().size)
   for(runtime in builtInRuntimes) for(system in runtime.systems) {
    val intent = router.intent(Game("test","content://provider/game","root","Game",system),runtime)
    assertEquals(runtime.packageName,intent.component!!.packageName)
@@ -45,6 +45,9 @@ class RuntimeCatalogTest {
     packageName=runtime.packageName
     applicationInfo=android.content.pm.ApplicationInfo().apply { packageName=runtime.packageName; enabled=true }
    }
+   info.activities = arrayOf(android.content.pm.ActivityInfo().apply {
+    packageName = runtime.packageName; name = runtime.activity; enabled = true; exported = true; applicationInfo = info.applicationInfo
+   })
    manager.installPackage(info)
    assertTrue(RuntimeRouter(context).installed(runtime))
    info.applicationInfo!!.enabled=false

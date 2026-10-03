@@ -3,6 +3,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Rule
 import org.junit.Test
+@OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 class NavigationTest {
  @get:Rule val compose = createAndroidComposeRule<MainActivity>()
  @Test fun startupAndNavigation() {
@@ -15,6 +16,34 @@ class NavigationTest {
   compose.onNodeWithText("Library & storage").assertIsDisplayed()
   compose.onNodeWithText("Games").performClick()
   compose.onNodeWithText("Your collection").assertIsDisplayed()
+ }
+ @Test fun simpleAndAdvancedEmulatorWorkflow() {
+  compose.onNodeWithText("Consoles").performClick()
+  compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("DuckStation · Not Installed"))
+  compose.onNodeWithText("DuckStation · Not Installed").assertIsDisplayed()
+  compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
+  compose.onNodeWithText("Add emulator").performScrollTo().performClick()
+  compose.onNodeWithText("Select Console").assertIsDisplayed()
+  compose.onNodeWithText("Select Installed Emulator").assertIsDisplayed()
+  compose.onNodeWithText("Package (org.example.emulator)").assertDoesNotExist()
+  compose.onNodeWithText("Advanced / Custom Emulator").performClick()
+  compose.onNodeWithText("Package (org.example.emulator)").assertIsDisplayed()
+  compose.onNodeWithText("Name").performTextInput("Custom test")
+  compose.onNodeWithText("Package (org.example.emulator)").performTextInput("org.example.testemulator")
+  compose.onNodeWithText("Add system").performScrollTo().performClick()
+  compose.onNodeWithText("Save").performClick()
+  compose.waitUntil(5000) { StationSettings(compose.activity).custom().any { it.name == "Custom test" } }
+  StationSettings(compose.activity).custom().filter { it.name == "Custom test" }.forEach { StationSettings(compose.activity).remove(it.id) }
+  compose.onNodeWithText("Cancel").performClick()
+ }
+ @Test fun controllerFocusThroughConsolesAndAddEmulator() {
+  compose.onNodeWithText("Consoles").performClick()
+  compose.onNodeWithText("Add emulator").performClick()
+  compose.onNodeWithText("Select Console").assertIsDisplayed()
+  compose.onNodeWithText("Cancel").performKeyInput { pressKey(androidx.compose.ui.input.key.Key.DirectionDown) }
+  compose.onNodeWithText("Cancel").performKeyInput { pressKey(androidx.compose.ui.input.key.Key.DirectionUp) }
+  compose.onNodeWithText("Cancel").performClick()
+  compose.onNodeWithText("Consoles & emulators").assertIsDisplayed()
  }
  @Test fun searchAndFilter() {
   compose.onNodeWithText("Search games or systems").performTextInput("test")

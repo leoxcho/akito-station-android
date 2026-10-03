@@ -73,5 +73,5 @@ class StorageTest {
  }
  @Test fun malformedArtworkRejected() { provider.image=byteArrayOf(1,2,3);assertThrows(IllegalArgumentException::class.java) { ArtworkStorage(context).import(Uri.parse("content://fixture/image"),"bad") } }
  @Test fun oversizedArtworkRejected() { provider.image=ByteArray(16*1024*1024+1);assertThrows(IllegalArgumentException::class.java) { ArtworkStorage(context).import(Uri.parse("content://fixture/image"),"large") } }
- @Test fun missingGameHandledBeforeRuntimeLaunch() { provider.offline=true;assertThrows(java.io.FileNotFoundException::class.java) { RuntimeRouter(context).launch(Game("id","content://fixture/game","r","Game",Platform.PSP),builtInRuntimes.first()) } }
+ @Test fun missingGameHandledBeforeRuntimeLaunch() { provider.offline=true;assertThrows(IllegalStateException::class.java) { RuntimeRouter(context).launch(Game("id","content://fixture/game","r","Game",Platform.PSP),builtInRuntimes.first()) } }
 }

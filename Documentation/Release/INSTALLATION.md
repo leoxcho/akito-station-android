@@ -1,9 +1,7 @@
-# Install or update Akito Station Android 1.0.1
+# Install Akito Station Android 1.0.2
 
-Use Akito-Station-Android-v1.0.1.apk on Android 8+ ARM64. Verify its SHA-256 against SHA256SUMS.txt and its certificate against PRODUCTION-SIGNATURE.txt. Allow installation from the file manager/browser you use and follow Android's installer.
+Android 8+ ARM64. Download Akito-Station-Android-v1.0.2.apk from the Android release. Check SHA256SUMS.txt. APK SHA-256: dfad977724388e0c09de81e25be73ecc66e69fed8dc9ecdb76eb00801d49e3c0. Permanent certificate SHA-256: babd07ffe949cdce48998f1b935778c3dba5285d69b2b48d20e67f5b6187b9b2.
 
-Install directly over production v1.0.0 without uninstalling. Both versions use package app.akitostation.android and certificate SHA-256 babd07ffe949cdce48998f1b935778c3dba5285d69b2b48d20e67f5b6187b9b2. Version code increases from 1 to 2. Database schema remains 1, preserving library entries, favorites, artwork, settings and storage grants. Online cover-art consent defaults off.
+Install directly over production v1.0.0/v1.0.1; do not uninstall to update. The tested v1.0.1 → v1.0.2 upgrade preserved private library metadata, artwork, settings, consent, preferences and persisted storage grants. Enable installation only for your chosen browser/file manager when Android asks. Do not use unsigned or LOCAL-REVIEW builds as production updates.
 
-Debug and LOCAL-REVIEW APKs use another certificate and cannot update production. Do not uninstall production to install a debug build; uninstall removes private metadata and imported covers. Original game folders and external emulator saves remain outside Akito-owned storage.
-
-Search Cover Art appears in game editing. Review consent, search, choose a result and Apply cover. Settings → Online cover art reviews/disables permission. Change cover still imports a local image. Compatible emulator apps remain external and must be installed/selected separately. No games, BIOS, firmware, console keys or emulator binaries are included.
+Install emulators independently from their official publisher and complete their setup. Consoles shows automatically detected compatible apps. Add Emulator uses console and installed-app selection; Advanced is for unsupported/custom applications. Multi-file discs can require granting the emulator its own library folder. Original games, firmware and external saves remain untouched.
