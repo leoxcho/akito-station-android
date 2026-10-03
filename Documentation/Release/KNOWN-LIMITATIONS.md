@@ -1,0 +1,3 @@
+# Known limitations
+
+Owner-confirmed physical acceptance and production signing are recorded. Individual adapter gameplay/save/controller matrices were not independently verified by Codex. Multiple-file disc dependencies, runtime-owned saves/BIOS setup and SAF provider behavior remain runtime/device-specific. PRO, online art scraping, cloud backup, embedded rendering and desktop save/profile management are post-1.0. App uninstall removes private metadata/covers while original games and external emulator saves are preserved. Updates open Android release review pages and do not automatically download/install. Publication was authorized after production verification.

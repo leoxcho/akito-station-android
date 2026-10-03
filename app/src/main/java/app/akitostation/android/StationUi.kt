@@ -1,0 +1,229 @@
+package app.akitostation.android
+
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import java.text.DateFormat
+import java.util.Date
+import java.util.UUID
+
+val Navy = Color(0xFF060916)
+val Red = Color(0xFFFF061A)
+val Cyan = Color(0xFF3DC7C2)
+private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, background = Navy, surface = Color(0xFF16162C), surfaceVariant = Color(0xFF24223E))
+
+@Composable fun StationApp(model: StationViewModel, controller: String) {
+ val state by model.state.collectAsStateWithLifecycle()
+ var page by rememberSaveable { mutableStateOf("Games") }
+ var query by rememberSaveable { mutableStateOf("") }
+ var filter by rememberSaveable { mutableStateOf(LibraryFilter.ALL) }
+ var system by rememberSaveable { mutableStateOf<Platform?>(null) }
+ var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+ val selected = state.games.firstOrNull { it.id == selectedId }
+ val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if(uri != null) model.addRoot(uri) }
+ MaterialTheme(colorScheme = StationColors) {
+  BackHandler(enabled = page != "Games" || selected != null) { if(selected != null) selectedId = null else page = "Games" }
+  Scaffold(containerColor = Navy, topBar = {
+   Column(Modifier.fillMaxWidth().background(Navy).statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+     Image(painterResource(R.drawable.station_logo), "Akito Station logo", Modifier.size(44.dp))
+     Column(Modifier.padding(start = 12.dp).weight(1f)) { Text("Akito Station", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Text("アキト・ステーション", style = MaterialTheme.typography.labelSmall, color = Cyan) }
+     IconButton(onClick = { folderPicker.launch(null) }, enabled = !state.busy) { Icon(Icons.Default.CreateNewFolder, "Add library") }
+    }
+   }
+  }, bottomBar = {
+   NavigationBar(containerColor = Navy) {
+    listOf("Games" to Icons.Default.GridView, "Consoles" to Icons.Default.SportsEsports, "Settings" to Icons.Default.Settings).forEach { (name, icon) ->
+     NavigationBarItem(selected = page == name, onClick = { page = name }, icon = { Icon(icon, name) }, label = { Text(name) })
+    }
+   }
+  }) { padding ->
+   Box(Modifier.fillMaxSize().padding(padding).background(Brush.linearGradient(listOf(Color(0xFF181330), Navy, Color(0xFF050917))))) {
+    when(page) {
+     "Games" -> Column(Modifier.fillMaxSize()) {
+      Text("Your collection", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+      OutlinedTextField(query, { query = it }, label = { Text("Search games or systems") }, leadingIcon = { Icon(Icons.Default.Search, null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
+      Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+       LibraryFilter.entries.forEach { f -> FilterChip(filter == f, { filter = f }, label = { Text(when(f) { LibraryFilter.ALL -> "All games"; LibraryFilter.FAVORITES -> "Favorites"; LibraryFilter.RECENT -> "Recently launched" }) }) }
+      }
+      Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+       SystemPicker(system, { system = it }, allowAll = true, modifier = Modifier.weight(1f))
+       var sortMenu by remember { mutableStateOf(false) }
+       Box { TextButton(onClick = { sortMenu = true }) { Icon(Icons.Default.Sort, null); Text("Sort") }; DropdownMenu(sortMenu, { sortMenu = false }) { SortOrder.entries.forEach { s -> DropdownMenuItem(text = { Text(s.name.lowercase().replaceFirstChar { it.uppercase() }) }, onClick = { model.sort(s); sortMenu = false }) } } }
+      }
+      val games = remember(state.games, query, filter, system, state.sort) { visibleGames(state.games, query, filter, system, state.sort) }
+      if(state.games.isEmpty()) {
+       BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        val roomy = maxHeight >= 240.dp
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
+         if(roomy) Icon(Icons.Default.SportsEsports, null, Modifier.size(40.dp), tint = Red)
+         Text("Your next adventure starts here", style = MaterialTheme.typography.titleMedium)
+         Text("Add your games. Originals stay untouched.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+         Button(onClick = { folderPicker.launch(null) }, enabled = !state.busy) { Text("Choose library folder") }
+        }
+       }
+      } else if(games.isEmpty()) { Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { Text("No games match these filters") } }
+      else LazyVerticalGrid(columns = GridCells.Adaptive(if(state.compact) 120.dp else 160.dp), contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.weight(1f)) {
+       items(games, key = { it.id }) { game -> GameCard(game, { selectedId = game.id }) }
+      }
+      Row(Modifier.fillMaxWidth().background(Color.Black.copy(alpha = .2f)).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+       if(state.busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+       Text(state.activity, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f).padding(start = 8.dp))
+       Text("${games.size} games", style = MaterialTheme.typography.labelSmall)
+       IconButton(onClick = { if(state.busy) model.cancelScan() else model.scan() }) { Icon(if(state.busy) Icons.Default.Close else Icons.Default.Refresh, if(state.busy) "Cancel scan" else "Refresh library") }
+      }
+     }
+     "Consoles" -> ConsolesScreen(state, model)
+     "Settings" -> SettingsScreen(state, model, controller, { folderPicker.launch(null) })
+    }
+   }
+  }
+  if(selected != null) GameDialog(selected, state, model, { selectedId = null })
+  if(state.message != null) AlertDialog(onDismissRequest = model::dismiss, title = { Text("Akito Station") }, text = { Text(state.message!!) }, confirmButton = { TextButton(onClick = model::dismiss) { Text("OK") } })
+ }
+}
+@Composable private fun GameCard(game: Game, onClick: () -> Unit) {
+ Card(onClick = onClick, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF17172D))) {
+  Box(Modifier.fillMaxWidth().aspectRatio(.72f).background(Brush.verticalGradient(listOf(Color(0xFF292044), Navy))), contentAlignment = Alignment.Center) {
+   if(game.artwork.isNotBlank()) AsyncImage(game.artwork, "Cover for ${game.displayTitle}", Modifier.fillMaxSize(), contentScale = ContentScale.Crop, error = painterResource(R.drawable.station_logo))
+   else Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(12.dp)) { Icon(Icons.Default.SportsEsports, null, Modifier.size(46.dp), tint = Cyan.copy(alpha = .7f)); Text(game.system.title, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp)) }
+   if(game.favorite) Icon(Icons.Default.Favorite, "Favorite", tint = Red, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
+  }
+  Column(Modifier.padding(12.dp)) { Text(game.displayTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold); Text(game.system.title, style = MaterialTheme.typography.labelSmall, color = Cyan, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+ }
+}
+@Composable fun SystemPicker(system: Platform?, onSelect: (Platform?) -> Unit, allowAll: Boolean = false, modifier: Modifier = Modifier) {
+ var expanded by remember { mutableStateOf(false) }
+ Box(modifier) { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(system?.title ?: "All systems", maxLines = 1, overflow = TextOverflow.Ellipsis); Icon(Icons.Default.ArrowDropDown, null) }
+  DropdownMenu(expanded, { expanded = false }) {
+   if(allowAll) DropdownMenuItem(text = { Text("All systems") }, onClick = { onSelect(null); expanded = false })
+   Platform.entries.forEach { p -> DropdownMenuItem(text = { Text(p.title) }, onClick = { onSelect(p); expanded = false }) }
+  }
+ }
+}
+@Composable private fun GameDialog(game: Game, state: StationState, model: StationViewModel, dismiss: () -> Unit) {
+ var title by remember(game.id) { mutableStateOf(game.displayTitle) }
+ var system by remember(game.id) { mutableStateOf(game.system) }
+ val artPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri != null) model.artwork(game, uri) }
+ AlertDialog(onDismissRequest = dismiss, title = { Text(game.displayTitle) }, text = {
+  Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+   Text(game.system.title, color = Cyan)
+   Text("${game.bytes / 1024 / 1024} MB · ${if(game.lastLaunched == 0L) "Never launched" else "Last launch: " + DateFormat.getDateTimeInstance().format(Date(game.lastLaunched))}")
+   Text("Emulator: " + (state.runtimes.firstOrNull { it.id == state.selectedRuntimes[game.system] }?.name ?: "Choose in Consoles"))
+   Text("Launch opens an external Android emulator. Saves and gameplay settings are managed by that emulator.", style = MaterialTheme.typography.bodySmall)
+   OutlinedTextField(title, { title = it }, label = { Text("Game title") }, singleLine = true)
+   SystemPicker(system, { if(it != null) system = it })
+   TextButton(onClick = { model.metadata(game, title, system) }) { Text("Save metadata") }
+   Row { TextButton(onClick = { model.favorite(game) }) { Text(if(game.favorite) "Unfavorite" else "Favorite") }; TextButton(onClick = { artPicker.launch(arrayOf("image/*")) }) { Text("Change cover") } }
+   TextButton(onClick = { model.resetArtwork(game) }) { Text("Remove cover") }
+  }
+ }, confirmButton = { Button(onClick = { model.launch(game); dismiss() }) { Icon(Icons.Default.PlayArrow, null); Text("Play") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Done") } })
+}
+@Composable private fun ConsolesScreen(state: StationState, model: StationViewModel) {
+ var editing by remember { mutableStateOf<RuntimeConfig?>(null) }
+ var adding by remember { mutableStateOf(false) }
+ LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+  item { Text("Consoles & emulators", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Install emulators separately. Select your preferred app for each system.", color = Cyan); Button(onClick = { adding = true }) { Text("Add emulator") } }
+  items(Platform.entries.filter { it != Platform.UNKNOWN }) { platform ->
+   Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+    Text(platform.title, fontWeight = FontWeight.Bold)
+    Text("${state.games.count { it.system == platform }} games", style = MaterialTheme.typography.bodySmall)
+    val choices = state.runtimes.filter { platform in it.systems }
+    if(choices.isEmpty()) Text("No adapter configured · add a compatible Android app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    choices.forEach { runtime ->
+     Row(verticalAlignment = Alignment.CenterVertically) {
+      RadioButton(state.selectedRuntimes[platform] == runtime.id, { model.select(platform, runtime.id) })
+      Text(runtime.name + if(runtime.id in state.installed) " · installed" else if(runtime.builtIn) " · missing" else " · not detected", Modifier.weight(1f))
+      if(!runtime.builtIn) IconButton(onClick = { editing = runtime }) { Icon(Icons.Default.Edit, "Edit ${runtime.name}") }
+     }
+    }
+    if(state.selectedRuntimes[platform] != null) TextButton(onClick = { model.select(platform, null) }) { Text("Clear selection") }
+   } }
+  }
+ }
+ if(adding || editing != null) RuntimeEditor(editing, { adding = false; editing = null }, model)
+}
+@Composable private fun RuntimeEditor(existing: RuntimeConfig?, dismiss: () -> Unit, model: StationViewModel) {
+ var name by remember { mutableStateOf(existing?.name ?: "") }
+ var pkg by remember { mutableStateOf(existing?.packageName ?: "") }
+ var activity by remember { mutableStateOf(existing?.activity ?: "") }
+ var mime by remember { mutableStateOf(existing?.mime ?: "application/octet-stream") }
+ var systems by remember { mutableStateOf(existing?.systems ?: emptySet()) }
+ var p by remember { mutableStateOf(Platform.NES) }
+ var error by remember { mutableStateOf<String?>(null) }
+ AlertDialog(onDismissRequest = dismiss, title = { Text(if(existing == null) "Add emulator" else "Edit emulator") }, text = {
+  Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+   Text("Uses Android ACTION_VIEW with a read-only document URI. Your chosen app must support this contract.", style = MaterialTheme.typography.bodySmall)
+   OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
+   OutlinedTextField(pkg, { pkg = it }, label = { Text("Package (org.example.emulator)") }, singleLine = true)
+   OutlinedTextField(activity, { activity = it }, label = { Text("Exported activity (optional)") }, singleLine = true)
+   OutlinedTextField(mime, { mime = it }, label = { Text("MIME type") }, singleLine = true)
+   SystemPicker(p, { if(it != null) p = it })
+   TextButton(onClick = { systems = if(p in systems) systems - p else systems + p }) { Text(if(p in systems) "Remove system" else "Add system") }
+   Text(systems.joinToString { it.title }.ifBlank { "No systems selected" })
+   if(error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
+   if(existing != null) TextButton(onClick = { model.removeRuntime(existing.id); dismiss() }) { Text("Remove registration") }
+  }
+ }, confirmButton = { TextButton(onClick = {
+  val config = RuntimeConfig(existing?.id ?: UUID.randomUUID().toString(), name.trim(), pkg.trim(), activity.trim(), mime.trim(), systems)
+  runCatching { config.validate() }.onSuccess { model.saveRuntime(config); dismiss() }.onFailure { error = it.message }
+ }) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+}
+@Composable private fun SettingsScreen(state: StationState, model: StationViewModel, controller: String, addFolder: () -> Unit) {
+ var repository by remember(state.repository) { mutableStateOf(state.repository) }
+ var removing by remember { mutableStateOf<LibraryRoot?>(null) }
+ val context = LocalContext.current
+ LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+  item { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
+  item { SettingsPanel("Library & storage") {
+   Text("Games stay in document-provider folders, including removable storage. Database and imported covers live in private app storage. No broad storage permission is requested.")
+   Button(onClick = addFolder, enabled = !state.busy) { Text("Add library folder") }
+   state.roots.forEach { root -> Row(verticalAlignment = Alignment.CenterVertically) { Text(root.name, Modifier.weight(1f)); TextButton(onClick = { removing = root }, enabled = !state.busy) { Text("Unregister") } } }
+   Text("Missing files stay in your library so metadata survives disconnected storage. Reconnect the volume or reselect its folder before launching.", style = MaterialTheme.typography.bodySmall)
+  } }
+  item { SettingsPanel("Appearance") { Row(verticalAlignment = Alignment.CenterVertically) { Text("Compact game cards", Modifier.weight(1f)); Switch(state.compact, model::compact) } } }
+  item { SettingsPanel("Controllers") { Text(controller); Text("D-pad / left stick moves focus. A selects; B goes back. Emulators manage gameplay mappings.") } }
+  item { SettingsPanel("Android updates") {
+   OutlinedTextField(repository, { repository = it }, label = { Text("Official GitHub owner/repository") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+   TextButton(onClick = { model.repository(repository) }) { Text("Save repository") }
+   Button(onClick = model::checkUpdates, enabled = state.repository.isNotBlank()) { Text("Check Android updates") }
+   Text("Only stable android-v tags with matching Android APK names and SHA-256 digests qualify. Updates open in your browser for owner-controlled installation.", style = MaterialTheme.typography.bodySmall)
+   state.update?.let { update -> TextButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.releaseUrl))) }.onFailure { model.notify("No browser available") } }) { Text("Review Android ${update.version}") } }
+  } }
+  item { SettingsPanel("Akito Station Public / PRO") {
+   Text("Android ${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}")
+   Text("Public library and external launching are available. PRO purchases and entitlement verification are not connected on Android. No local setting unlocks PRO.")
+  } }
+  item { SettingsPanel("Privacy & preservation") { Text("No analytics, accounts, advertisements or game uploads. Networking occurs only when you request an update check. Unregistering a library or emulator never deletes your original games, firmware or saves. Uninstalling Akito removes its private metadata and imported covers.") } }
+ }
+ if(removing != null) AlertDialog(onDismissRequest = { removing = null }, title = { Text("Unregister library?") }, text = { Text("Remove ${removing!!.name} and its metadata from Akito Station. Original files stay untouched.") }, confirmButton = { TextButton(onClick = { model.removeRoot(removing!!); removing = null }) { Text("Unregister") } }, dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel") } })
+}
+@Composable private fun SettingsPanel(title: String, content: @Composable ColumnScope.() -> Unit) {
+ Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(title, style = MaterialTheme.typography.titleMedium, color = Cyan); content() } }
+}

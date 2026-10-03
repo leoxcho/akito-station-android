@@ -1,0 +1,20 @@
+/.tools/
+/.gradle/
+/local.properties
+/**/build/
+/reports/
+/release-candidate/
+/signing/
+*.jks
+*.keystore
+.idea/
+
+# Owner signing credentials and production output
+signing/
+production-candidate/
+*.jks
+*.keystore
+*.p12
+*.pfx
+.env
+.env.*

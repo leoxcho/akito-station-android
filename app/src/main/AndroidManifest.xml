@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+ <uses-permission android:name="android.permission.INTERNET"/>
+ <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+ <uses-feature android:name="android.hardware.gamepad" android:required="false"/>
+ <queries>
+  <package android:name="org.ppsspp.ppsspp"/>
+  <package android:name="org.ppsspp.ppssppgold"/>
+  <package android:name="org.dolphinemu.dolphinemu"/>
+  <package android:name="me.magnum.melonds"/>
+  <package android:name="org.mupen64plusae.v3.alpha"/>
+  <package android:name="com.explusalpha.NesEmu"/>
+  <package android:name="com.explusalpha.Snes9xPlus"/>
+  <package android:name="com.explusalpha.GbcEmu"/>
+  <package android:name="com.explusalpha.GbaEmu"/>
+  <package android:name="com.explusalpha.MdEmu"/>
+  <package android:name="com.PceEmu"/>
+  <package android:name="com.explusalpha.SaturnEmu"/>
+  <intent><action android:name="android.intent.action.VIEW"/><data android:mimeType="*/*"/></intent>
+ </queries>
+ <application android:label="Akito Station" android:icon="@drawable/station_logo" android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/no_backup" tools:targetApi="31" android:usesCleartextTraffic="false" android:supportsRtl="true" android:theme="@style/AppTheme">
+  <activity android:name=".MainActivity" android:exported="true">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity>
+ </application>
+</manifest>
