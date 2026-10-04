@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
 data class StationState(val games: List<Game> = emptyList(), val roots: List<LibraryRoot> = emptyList(), val runtimes: List<RuntimeConfig> = builtInRuntimes,
  val selectedRuntimes: Map<Platform, String?> = emptyMap(), val installed: Set<String> = emptySet(), val busy: Boolean = false,
  val launchGame: Game? = null, val launchChoices: List<RuntimeConfig> = emptyList(), val activity: String = "Ready", val message: String? = null, val compact: Boolean = false, val sort: SortOrder = SortOrder.TITLE,
- val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
+ val density: LibraryDensity = LibraryDensity.FOUR, val scrape: ScrapeProgress? = null, val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
 class StationViewModel(application: Application) : AndroidViewModel(application) {
  private val db = LibraryDatabase(application)
  val settings = StationSettings(application)
@@ -26,12 +26,13 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
  val state = mutable.asStateFlow()
  private val workMutex = Mutex()
  private var scanJob: Job? = null
+ private var scrapeJob: Job? = null
  init { refresh() }
  private suspend fun load() {
   val runtimes = builtInRuntimes + settings.custom()
   mutable.update { current -> current.copy(games = db.games(), roots = db.roots(), runtimes = runtimes,
    selectedRuntimes = Platform.entries.associateWith(settings::selected), installed = runtimes.filter(router::installed).map { it.id }.toSet(),
-   onlineArtwork = settings.onlineArtwork, compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
+   density = settings.density, onlineArtwork = settings.onlineArtwork, compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
  }
  fun refresh() = work { load() }
  private fun work(action: suspend () -> Unit) { viewModelScope.launch(Dispatchers.IO) { try { workMutex.withLock { action() } } catch(e: CancellationException) { throw e } catch(e: Exception) { mutable.update { current -> current.copy(message = e.message ?: "Operation failed") } } } }
@@ -85,6 +86,40 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
    db.artwork(game.id, path); load()
   }
  }
+ fun density(value: LibraryDensity) {
+  mutable.update { it.copy(density = value) }
+  work { settings.density = value }
+ }
+ fun scrapeArtwork(options: ScrapeOptions) {
+  if(scrapeJob?.isActive == true) return
+  scrapeJob = viewModelScope.launch(Dispatchers.IO) {
+   val provider = CoverSearch({ settings.onlineArtwork }, retries = 2)
+   val downloaded = mutableMapOf<String, String>()
+   val scraper = BulkArtwork({ settings.onlineArtwork }, { game ->
+    if(game.system !in CoverSearch.repositories) emptyList() else provider.search(game.displayTitle, game.system, false)
+   }, { game, result, replace ->
+    val cached = downloaded[result.url]?.takeIf { java.io.File(it).exists() }
+    val bytes = if(cached == null) provider.download(result) else null
+    ensureActive()
+    workMutex.withLock {
+     check(settings.onlineArtwork)
+     val latest = db.game(game.id)
+     if(latest == null || (!replace && latest.artwork.isNotBlank()) || latest.system != game.system || latest.displayTitle != game.displayTitle || latest.artwork != game.artwork) false
+     else {
+      val path = cached ?: ArtworkStorage(getApplication()).saveShared(bytes!!).also { downloaded[result.url] = it }
+      db.artwork(game.id, path)
+      mutable.update { it.copy(games = it.games.map { g -> if(g.id == game.id) g.copy(artwork = path) else g }) }
+      true
+     }
+    }
+   })
+   try { scraper.run(db.games(), options) { progress -> mutable.update { it.copy(scrape = progress) } } }
+   catch(e: CancellationException) { mutable.update { it.copy(scrape = it.scrape?.copy(complete = true, cancelled = true, current = "")) }; throw e }
+   catch(e: Exception) { notify(e.message ?: "Scrape interrupted"); mutable.update { it.copy(scrape = it.scrape?.copy(complete = true, cancelled = true)) } }
+  }
+ }
+ fun cancelScrape() { scrapeJob?.cancel() }
+ fun dismissScrape() { if(scrapeJob?.isActive != true) mutable.update { it.copy(scrape = null) } }
  fun resetArtwork(game: Game) = work { db.artwork(game.id, ""); load() }
  fun launch(game: Game) = work {
   val runtimes = builtInRuntimes + settings.custom()
@@ -125,5 +160,5 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
   val update = AndroidUpdates.check(settings.updateRepository, BuildConfig.VERSION_CODE.toLong())
   mutable.update { current -> current.copy(update = update, message = if(update == null) "No newer stable Android APK found. macOS assets are excluded." else "Android ${update.version} is available. Review its release and checksum before installing.") }
  }
- override fun onCleared() { scanJob?.cancel(); db.close() }
+ override fun onCleared() { scanJob?.cancel(); scrapeJob?.cancel(); db.close() }
 }

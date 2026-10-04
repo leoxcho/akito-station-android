@@ -122,4 +122,20 @@ class NavigationTest {
   }
   StationSettings(compose.activity).onlineArtwork = false
  }
+ @Test fun bulkScrapeLiveProviderAndSummary() {
+  val game = Game("bulk-live", "content://test/bulk", "bulk-live-root", "Pokemon - Emerald Version", Platform.GBA)
+  LibraryDatabase(compose.activity).use { it.mergeRoot(game.root, listOf(game)) }
+  StationSettings(compose.activity).onlineArtwork = true
+  compose.activityRule.scenario.recreate()
+  compose.waitUntil(5000) { compose.onAllNodesWithText(game.title).fetchSemanticsNodes().isNotEmpty() }
+  compose.onNodeWithText("Scrape Box Art").performClick()
+  compose.onNodeWithText("Missing Artwork Only").assertIsDisplayed()
+  compose.onNodeWithText("Start scrape").performClick()
+  compose.waitUntil(60000) { compose.onAllNodesWithText("Box Art Scrape Complete").fetchSemanticsNodes().isNotEmpty() }
+  LibraryDatabase(compose.activity).use { db ->
+   org.junit.Assert.assertTrue(java.io.File(db.game(game.id)!!.artwork).exists()); db.removeRoot(game.root)
+  }
+  compose.onNodeWithText("Done").performClick()
+  StationSettings(compose.activity).onlineArtwork = false
+ }
 }

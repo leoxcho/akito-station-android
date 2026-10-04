@@ -7,7 +7,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--keystore', type=Path, required=True)
 p.add_argument('--alias', default='akito-android')
 p.add_argument('--fingerprint', required=True, help='Expected SHA-256 certificate fingerprint from owner records')
-p.add_argument('--version', choices=['1.0.0', '1.0.1', '1.0.2'], default='1.0.0')
+p.add_argument('--version', choices=['1.0.0', '1.0.1', '1.0.2', '1.0.3'], default='1.0.0')
 a = p.parse_args()
 source = root / f'release-candidate/Akito-Station-Android-v{a.version}-UNSIGNED.apk'
 tools = root / '.tools/sdk/build-tools/36.0.0'

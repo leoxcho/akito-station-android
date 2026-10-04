@@ -52,6 +52,14 @@ class ArtworkStorage(private val context: Context) {
   val bytes = context.contentResolver.openInputStream(uri)?.use { input -> input.readBounded(16 * 1024 * 1024 + 1) } ?: error("Image unavailable")
   return save(bytes, id)
  }
+ fun saveShared(bytes: ByteArray): String {
+  val hash = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+  val file = File(context.filesDir, "covers/shared-$hash.cover")
+  if(file.exists()) return file.absolutePath
+  val saved = File(save(bytes, "shared-$hash"))
+  check(saved.renameTo(file)) { "Could not install shared cover" }
+  return file.absolutePath
+ }
  fun save(bytes: ByteArray, id: String): String {
   require(id.matches(Regex("[A-Za-z0-9_-]+"))) { "Invalid artwork identifier" }
   require(bytes.size <= 16 * 1024 * 1024) { "Cover must be smaller than 16 MB" }

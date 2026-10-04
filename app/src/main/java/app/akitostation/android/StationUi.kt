@@ -46,6 +46,8 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
  var query by rememberSaveable { mutableStateOf("") }
  var filter by rememberSaveable { mutableStateOf(LibraryFilter.ALL) }
  var system by rememberSaveable { mutableStateOf<Platform?>(null) }
+ var scrapeSetup by remember { mutableStateOf(false) }
+ var reviewIds by rememberSaveable { mutableStateOf<List<String>?>(null) }
  var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
  val selected = state.games.firstOrNull { it.id == selectedId }
  val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if(uri != null) model.addRoot(uri) }
@@ -79,7 +81,12 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
        var sortMenu by remember { mutableStateOf(false) }
        Box { TextButton(onClick = { sortMenu = true }) { Icon(Icons.Default.Sort, null); Text("Sort") }; DropdownMenu(sortMenu, { sortMenu = false }) { SortOrder.entries.forEach { s -> DropdownMenuItem(text = { Text(s.name.lowercase().replaceFirstChar { it.uppercase() }) }, onClick = { model.sort(s); sortMenu = false }) } } }
       }
-      val games = remember(state.games, query, filter, system, state.sort) { visibleGames(state.games, query, filter, system, state.sort) }
+      Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+       GridSizeSelector(state.density, model::density, Modifier.weight(1f))
+       TextButton(onClick = { scrapeSetup = true }, enabled = state.scrape?.complete != false) { Text("Scrape Box Art") }
+      }
+      if(reviewIds != null) TextButton(onClick = { reviewIds = null }) { Text("Review missing artwork · Clear filter") }
+      val games = remember(state.games, query, filter, system, state.sort, reviewIds) { visibleGames(state.games, query, filter, system, state.sort).filter { reviewIds == null || it.id in reviewIds!! } }
       if(state.games.isEmpty()) {
        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         val roomy = maxHeight >= 240.dp
@@ -91,9 +98,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
         }
        }
       } else if(games.isEmpty()) { Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { Text("No games match these filters") } }
-      else LazyVerticalGrid(columns = GridCells.Adaptive(if(state.compact) 120.dp else 160.dp), contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.weight(1f)) {
-       items(games, key = { it.id }) { game -> GameCard(game, { selectedId = game.id }) }
-      }
+      else LibraryGrid(games, state.density, Modifier.weight(1f)) { selectedId = it.id }
       Row(Modifier.fillMaxWidth().background(Color.Black.copy(alpha = .2f)).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
        if(state.busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
        Text(state.activity, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f).padding(start = 8.dp))
@@ -106,6 +111,10 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
     }
    }
   }
+  if(scrapeSetup) ScrapeSetup(state.onlineArtwork, { model.onlineArtwork(true) }, { options -> scrapeSetup = false; model.scrapeArtwork(options) }, { scrapeSetup = false })
+  state.scrape?.let { progress -> ScrapeProgressDialog(progress, model::cancelScrape, model::dismissScrape) {
+   reviewIds = progress.missing.toList(); query = ""; filter = LibraryFilter.ALL; system = null; page = "Games"; model.dismissScrape()
+  } }
   if(selected != null) GameDialog(selected, state, model, { selectedId = null })
   if(state.launchGame != null) {
    var rememberChoice by remember { mutableStateOf(true) }
@@ -120,14 +129,14 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
   if(state.message != null) AlertDialog(onDismissRequest = model::dismiss, title = { Text("Akito Station") }, text = { Text(state.message!!) }, confirmButton = { TextButton(onClick = model::dismiss) { Text("OK") } })
  }
 }
-@Composable private fun GameCard(game: Game, onClick: () -> Unit) {
- Card(onClick = onClick, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF17172D))) {
+@Composable internal fun GameCard(game: Game, modifier: Modifier = Modifier, onClick: () -> Unit) {
+ Card(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF17172D))) {
   Box(Modifier.fillMaxWidth().aspectRatio(.72f).background(Brush.verticalGradient(listOf(Color(0xFF292044), Navy))), contentAlignment = Alignment.Center) {
-   if(game.artwork.isNotBlank()) AsyncImage(game.artwork, "Cover for ${game.displayTitle}", Modifier.fillMaxSize(), contentScale = ContentScale.Crop, error = painterResource(R.drawable.station_logo))
-   else Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(12.dp)) { Icon(Icons.Default.SportsEsports, null, Modifier.size(46.dp), tint = Cyan.copy(alpha = .7f)); Text(game.system.title, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 12.dp)) }
+   if(game.artwork.isNotBlank()) AsyncImage(game.artwork, "Cover for ${game.displayTitle}", Modifier.fillMaxSize(), contentScale = ContentScale.Fit, error = painterResource(R.drawable.station_logo))
+   else Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) { Icon(Icons.Default.SportsEsports, null, Modifier.size(32.dp), tint = Cyan.copy(alpha = .7f)); Text(game.system.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)) }
    if(game.favorite) Icon(Icons.Default.Favorite, "Favorite", tint = Red, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
   }
-  Column(Modifier.padding(12.dp)) { Text(game.displayTitle, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold); Text(game.system.title, style = MaterialTheme.typography.labelSmall, color = Cyan, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+  Column(Modifier.padding(8.dp)) { Text(game.displayTitle, maxLines = 2, style = MaterialTheme.typography.bodySmall, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold); Text(game.system.title, style = MaterialTheme.typography.labelSmall, color = Cyan, maxLines = 1, overflow = TextOverflow.Ellipsis) }
  }
 }
 @Composable fun SystemPicker(system: Platform?, onSelect: (Platform?) -> Unit, allowAll: Boolean = false, modifier: Modifier = Modifier) {
@@ -260,7 +269,7 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    state.roots.forEach { root -> Row(verticalAlignment = Alignment.CenterVertically) { Text(root.name, Modifier.weight(1f)); TextButton(onClick = { removing = root }, enabled = !state.busy) { Text("Unregister") } } }
    Text("Missing files stay in your library so metadata survives disconnected storage. Reconnect the volume or reselect its folder before launching.", style = MaterialTheme.typography.bodySmall)
   } }
-  item { SettingsPanel("Appearance") { Row(verticalAlignment = Alignment.CenterVertically) { Text("Compact game cards", Modifier.weight(1f)); Switch(state.compact, model::compact) } } }
+  item { SettingsPanel("Library view") { GridSizeSelector(state.density, model::density); Text("Density adapts to screen width and text size. Applies to every library filter.") } }
   item { SettingsPanel("Online cover art") { Text(CoverPrivacy); Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow online artwork search", Modifier.weight(1f)); Switch(state.onlineArtwork, model::onlineArtwork) } } }
   item { SettingsPanel("Controllers") { Text(controller); Text("D-pad / left stick moves focus. A selects; B goes back. Emulators manage gameplay mappings.") } }
   item { SettingsPanel("Android updates") {

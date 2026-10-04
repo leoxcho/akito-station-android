@@ -48,6 +48,9 @@ class StationSettings(context: Context) {
   }
  }
  var onlineArtwork: Boolean get() = prefs.getBoolean("onlineArtworkConsent.v1", false); set(value) { prefs.edit().putBoolean("onlineArtworkConsent.v1", value).commit() }
+ var density: LibraryDensity
+  get() = runCatching { LibraryDensity.valueOf(prefs.getString("libraryDensity.v1", null) ?: if(compact) "FIVE" else "FOUR") }.getOrDefault(LibraryDensity.FOUR)
+  set(value) { prefs.edit().putString("libraryDensity.v1", value.name).commit() }
  var compact: Boolean get() = prefs.getBoolean("compact", false); set(value) { prefs.edit().putBoolean("compact", value).apply() }
  var sort: SortOrder get() = runCatching { SortOrder.valueOf(prefs.getString("sort", "TITLE")!!) }.getOrDefault(SortOrder.TITLE); set(value) { prefs.edit().putString("sort", value.name).apply() }
  var updateRepository: String get() = prefs.getString("updateRepository", "leoxcho/akito-station-android")!!.ifBlank { "leoxcho/akito-station-android" }; set(value) { require(value.isBlank() || value.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"))) { "Use owner/repository" }; prefs.edit().putString("updateRepository", value.trim()).apply() }

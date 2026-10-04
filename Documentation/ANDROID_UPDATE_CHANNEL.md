@@ -16,3 +16,5 @@ Publication review configuration:
 Before future updates, test offline, rate-limit, 404, empty releases, mixed macOS/Android metadata, digest absence, malformed URLs and a same-certificate upgrade. Owner-approved repository configuration is prepared locally; live endpoint verification is performed after the owner-authorized release is published.
 
 1.0.1 uses build 2. Tests confirm the checker offers it to build 1 and excludes it from build 2. Anonymous live channel verification follows publication.
+
+1.0.3 uses build 4. Fixtures verify build 3 selects build 4 and build 4 excludes itself. Production and anonymous live checks are recorded in the v1.0.3 release report.

@@ -15,7 +15,9 @@ class LibraryDatabase(context: Context) : SQLiteOpenHelper(context, "library.db"
  fun roots(): List<LibraryRoot> = readableDatabase.query("roots", null, null, null, null, null, "name").use { c -> buildList { while(c.moveToNext()) add(LibraryRoot(c.getString(0), c.getString(1))) } }
  fun addRoot(root: LibraryRoot) { writableDatabase.insertWithOnConflict("roots", null, ContentValues().apply { put("uri", root.uri); put("name", root.name) }, SQLiteDatabase.CONFLICT_REPLACE) }
  fun removeRoot(uri: String) { writableDatabase.beginTransaction(); try { writableDatabase.delete("games", "root=?", arrayOf(uri)); writableDatabase.delete("roots", "uri=?", arrayOf(uri)); writableDatabase.setTransactionSuccessful() } finally { writableDatabase.endTransaction() } }
- fun games(): List<Game> = readableDatabase.query("games", null, null, null, null, null, "title COLLATE NOCASE").use { c ->
+ fun game(id: String): Game? = readGames(id).firstOrNull()
+ fun games(): List<Game> = readGames(null)
+ private fun readGames(id: String?): List<Game> = readableDatabase.query("games", null, if(id == null) null else "id=?", id?.let { arrayOf(it) }, null, null, "title COLLATE NOCASE").use { c ->
   fun str(name: String) = c.getString(c.getColumnIndexOrThrow(name))
   fun num(name: String) = c.getLong(c.getColumnIndexOrThrow(name))
   buildList { while(c.moveToNext()) add(Game(str("id"), str("uri"), str("root"), str("title"), Platform.valueOf(str("platform")), num("bytes"), num("favorite") != 0L, num("lastLaunched"), str("artwork"), str("customTitle"), str("platformOverride")?.let(Platform::valueOf))) }

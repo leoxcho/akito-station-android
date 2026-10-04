@@ -18,3 +18,7 @@ production-candidate/
 *.pfx
 .env
 .env.*
+
+/.kotlin/
+
+__pycache__/
