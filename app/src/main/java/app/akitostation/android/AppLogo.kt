@@ -11,7 +11,8 @@ enum class AppLogo(val label: String, val resource: Int) {
  ICE("Ice", R.drawable.logo_ice), GOLD("Gold", R.drawable.logo_gold), BLUEPRINT("Blueprint", R.drawable.logo_blueprint);
  fun applyLauncher(context: Context) {
   val manager = context.packageManager
-  fun component(logo: AppLogo) = ComponentName(context, "${AppLogo::class.java.`package`!!.name}.Logo${logo.name}")
+  // Manifest aliases use the fixed namespace; R8 may relocate this enum, and debug builds add an application ID suffix.
+  fun component(logo: AppLogo) = ComponentName(context, "app.akitostation.android.Logo${logo.name}")
   if(Build.VERSION.SDK_INT >= 33) {
    manager.setComponentEnabledSettings(entries.map { logo -> PackageManager.ComponentEnabledSetting(component(logo), if(logo == this) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP) })
   } else {

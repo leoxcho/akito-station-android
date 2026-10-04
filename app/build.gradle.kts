@@ -7,8 +7,8 @@ android {
   applicationId = "app.akitostation.android"
   minSdk = 26
   targetSdk = 36
-  versionCode = 5
-  versionName = "1.0.4"
+  versionCode = 6
+  versionName = "1.0.5"
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   ndk { abiFilters += "arm64-v8a" }
  }
@@ -27,6 +27,13 @@ android {
    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
    if (ownerKey != null) signingConfig = signingConfigs.getByName("owner")
   }
+ }
+ // Isolated test installation exercises the release optimizer without touching production app data.
+ buildTypes.create("releaseCheck") {
+  initWith(buildTypes.getByName("release"))
+  applicationIdSuffix = ".releasecheck"
+  signingConfig = signingConfigs.getByName("debug")
+  matchingFallbacks += listOf("release")
  }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  buildFeatures { compose = true; buildConfig = true }

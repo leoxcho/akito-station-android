@@ -15,7 +15,7 @@ class AppLogoUiTest {
    compose.onNodeWithText(logo.label, substring = true).performClick()
    compose.waitUntil(5000) { StationSettings(compose.activity).logo == logo }
    for(other in AppLogo.entries) {
-    val component = ComponentName(compose.activity, "${AppLogo::class.java.`package`!!.name}.Logo${other.name}")
+    val component = ComponentName(compose.activity, "app.akitostation.android.Logo${other.name}")
     assertEquals(if(other == logo) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED, compose.activity.packageManager.getComponentEnabledSetting(component))
    }
    compose.activityRule.scenario.recreate()

@@ -17,7 +17,7 @@ class AppLogoTest {
    logo.applyLauncher(context); settings.logo = logo
    assertEquals(logo, StationSettings(context).logo)
    for(other in AppLogo.entries) {
-    val state = context.packageManager.getComponentEnabledSetting(ComponentName(context, "${AppLogo::class.java.`package`!!.name}.Logo${other.name}"))
+    val state = context.packageManager.getComponentEnabledSetting(ComponentName(context, "app.akitostation.android.Logo${other.name}"))
     assertEquals(if(other == logo) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED, state)
     assertNotNull(context.resources.getDrawable(other.resource, null))
    }

@@ -1,6 +1,6 @@
 # Akito Station for Android
 
-Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.4, build 5.
+Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.5, build 6 (hotfix candidate).
 
 The Public edition provides a unified, local game library and explicit external emulator handoff. No emulator, game, BIOS, console firmware or encryption key is bundled. The dark navy/violet, red/cyan palette, Station logo, collection grid and library navigation follow the macOS Public reference. Android uses document-provider access instead of desktop filesystem paths.
 
@@ -62,3 +62,7 @@ Seven persistent Appearance → App Logo choices, compact landscape navigation a
 Games → **Scrape Box Art** automates missing covers using consented Libretro catalogs, conservative system/title matches, progress/cancel and missing-art review. All Games preserves existing covers unless replacement is selected. Games → **View / Grid Size** and Settings → Library view share persistent **2×2, 3×3, 4×4, 5×5 and 6×6** density presets, responsive phone/tablet columns and controller focus restoration.
 
 Validated with 155 JVM tests, phone/tablet 13/13 each, same-certificate production 1.0.2 upgrade and source/APK security/alignment checks. Functional 10,000-record scrolling and simulated D-pad navigation passed; physical hardware/controllers and frame-time benchmarking remain outside this run. See [artwork/density details](Documentation/COVER_SEARCH.md), [release notes](Documentation/Release/RELEASE-NOTES-v1.0.3.md) and [verification report](Documentation/Release/RELEASE-REPORT-v1.0.3.md). Install over v1.0.2 without uninstalling.
+
+## Android 1.0.5 hotfix
+
+Launcher alias names use the fixed manifest namespace so logo switching works after release optimization. Run `Scripts/build.sh assembleReleaseCheck` for an isolated, optimized UI test installation; then run `python3 Scripts/verify-logo-release.py`. Production signing uses the existing owner certificate.
