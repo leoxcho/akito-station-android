@@ -17,7 +17,7 @@ class LibraryDensityTest {
    for(preset in LibraryDensity.entries) {
     val count = preset.columns(width)
     assertTrue(count >= 1)
-    assertTrue((width - 40 - (count - 1) * 12) / count >= 48)
+    assertTrue((width - 40 - (count - 1) * 20) / count >= 48)
     assertTrue(preset.columns(width, 2f) <= count)
    }
   }

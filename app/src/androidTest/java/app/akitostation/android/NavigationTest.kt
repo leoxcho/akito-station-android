@@ -47,6 +47,7 @@ class NavigationTest {
  }
  @Test fun searchAndFilter() {
   compose.onNodeWithText("Search games or systems").performTextInput("test")
+  compose.onNodeWithText("Filters").performClick()
   compose.onNodeWithText("Favorites").performClick()
   compose.onNodeWithText("Recently launched").performScrollTo().performClick()
   compose.onNodeWithText("All games").performClick()
@@ -63,6 +64,7 @@ class NavigationTest {
   compose.onNodeWithText("Game title").performTextReplacement("Edited record")
   compose.onNodeWithText("Save metadata").performClick()
   compose.onNodeWithText("Done").performClick()
+  compose.onNodeWithText("Filters").performClick()
   compose.onNodeWithText("Favorites").performClick()
   compose.waitUntil(5000) { compose.onAllNodesWithText("Edited record").fetchSemanticsNodes().isNotEmpty() }
   compose.onNodeWithText("Edited record").performClick()
@@ -128,7 +130,7 @@ class NavigationTest {
   StationSettings(compose.activity).onlineArtwork = true
   compose.activityRule.scenario.recreate()
   compose.waitUntil(5000) { compose.onAllNodesWithText(game.title).fetchSemanticsNodes().isNotEmpty() }
-  compose.onNodeWithText("Scrape Box Art").performClick()
+  compose.onNodeWithContentDescription("Scrape Box Art").performClick()
   compose.onNodeWithText("Missing Artwork Only").assertIsDisplayed()
   compose.onNodeWithText("Start scrape").performClick()
   compose.waitUntil(60000) { compose.onAllNodesWithText("Box Art Scrape Complete").fetchSemanticsNodes().isNotEmpty() }

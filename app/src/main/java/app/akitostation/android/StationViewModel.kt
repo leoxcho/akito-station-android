@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
 data class StationState(val games: List<Game> = emptyList(), val roots: List<LibraryRoot> = emptyList(), val runtimes: List<RuntimeConfig> = builtInRuntimes,
  val selectedRuntimes: Map<Platform, String?> = emptyMap(), val installed: Set<String> = emptySet(), val busy: Boolean = false,
  val launchGame: Game? = null, val launchChoices: List<RuntimeConfig> = emptyList(), val activity: String = "Ready", val message: String? = null, val compact: Boolean = false, val sort: SortOrder = SortOrder.TITLE,
- val density: LibraryDensity = LibraryDensity.FOUR, val scrape: ScrapeProgress? = null, val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
+ val logo: AppLogo = AppLogo.AURORA, val density: LibraryDensity = LibraryDensity.FOUR, val scrape: ScrapeProgress? = null, val onlineArtwork: Boolean = false, val repository: String = "", val update: AndroidUpdate? = null)
 class StationViewModel(application: Application) : AndroidViewModel(application) {
  private val db = LibraryDatabase(application)
  val settings = StationSettings(application)
@@ -32,7 +32,7 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
   val runtimes = builtInRuntimes + settings.custom()
   mutable.update { current -> current.copy(games = db.games(), roots = db.roots(), runtimes = runtimes,
    selectedRuntimes = Platform.entries.associateWith(settings::selected), installed = runtimes.filter(router::installed).map { it.id }.toSet(),
-   density = settings.density, onlineArtwork = settings.onlineArtwork, compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
+   logo = settings.logo, density = settings.density, onlineArtwork = settings.onlineArtwork, compact = settings.compact, sort = settings.sort, repository = settings.updateRepository) }
  }
  fun refresh() = work { load() }
  private fun work(action: suspend () -> Unit) { viewModelScope.launch(Dispatchers.IO) { try { workMutex.withLock { action() } } catch(e: CancellationException) { throw e } catch(e: Exception) { mutable.update { current -> current.copy(message = e.message ?: "Operation failed") } } } }
@@ -85,6 +85,11 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
    val path = ArtworkStorage(getApplication()).save(bytes, game.id)
    db.artwork(game.id, path); load()
   }
+ }
+ fun logo(value: AppLogo) = work {
+  value.applyLauncher(getApplication())
+  settings.logo = value
+  mutable.update { it.copy(logo = value) }
  }
  fun density(value: LibraryDensity) {
   mutable.update { it.copy(density = value) }

@@ -20,8 +20,27 @@
   <intent><action android:name="android.intent.action.VIEW"/><data android:mimeType="*/*"/></intent>
  </queries>
  <application android:label="Akito Station" android:icon="@drawable/station_logo" android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/no_backup" tools:targetApi="31" android:usesCleartextTraffic="false" android:supportsRtl="true" android:theme="@style/AppTheme">
-  <activity android:name=".MainActivity" android:exported="true">
+  <activity android:name=".MainActivity" android:exported="true"/>
+  <activity-alias android:name=".LogoAURORA" android:targetActivity=".MainActivity" android:enabled="true" android:exported="true" android:icon="@drawable/logo_aurora" android:label="Akito Station">
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-  </activity>
+  </activity-alias>
+  <activity-alias android:name=".LogoCLASSIC" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_classic" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
+  <activity-alias android:name=".LogoCHROME" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_chrome" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
+  <activity-alias android:name=".LogoNEON" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_neon" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
+  <activity-alias android:name=".LogoICE" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_ice" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
+  <activity-alias android:name=".LogoGOLD" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_gold" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
+  <activity-alias android:name=".LogoBLUEPRINT" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/logo_blueprint" android:label="Akito Station">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity-alias>
  </application>
 </manifest>

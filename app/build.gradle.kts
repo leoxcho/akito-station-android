@@ -7,8 +7,8 @@ android {
   applicationId = "app.akitostation.android"
   minSdk = 26
   targetSdk = 36
-  versionCode = 4
-  versionName = "1.0.3"
+  versionCode = 5
+  versionName = "1.0.4"
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   ndk { abiFilters += "arm64-v8a" }
  }
@@ -22,6 +22,7 @@ android {
   }
  }
  buildTypes {
+  debug { applicationIdSuffix = ".debug" }
   release { isMinifyEnabled = true; isShrinkResources = true
    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
    if (ownerKey != null) signingConfig = signingConfigs.getByName("owner")

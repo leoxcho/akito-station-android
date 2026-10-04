@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,10 +40,16 @@ import java.util.UUID
 val Navy = Color(0xFF060916)
 val Red = Color(0xFFFF061A)
 val Cyan = Color(0xFF3DC7C2)
+private val LocalAppLogo = staticCompositionLocalOf { AppLogo.AURORA }
 private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, background = Navy, surface = Color(0xFF16162C), surfaceVariant = Color(0xFF24223E))
 
 @Composable fun StationApp(model: StationViewModel, controller: String) {
  val state by model.state.collectAsStateWithLifecycle()
+ val configuration = LocalConfiguration.current
+ val landscape = configuration.screenWidthDp > configuration.screenHeightDp
+ val shortLandscape = landscape && configuration.screenHeightDp < 300
+ var controlsExpanded by rememberSaveable { mutableStateOf(false) }
+
  var page by rememberSaveable { mutableStateOf("Games") }
  var query by rememberSaveable { mutableStateOf("") }
  var filter by rememberSaveable { mutableStateOf(LibraryFilter.ALL) }
@@ -51,18 +59,39 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
  var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
  val selected = state.games.firstOrNull { it.id == selectedId }
  val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if(uri != null) model.addRoot(uri) }
+ CompositionLocalProvider(LocalAppLogo provides state.logo) {
  MaterialTheme(colorScheme = StationColors) {
   BackHandler(enabled = page != "Games" || selected != null) { if(selected != null) selectedId = null else page = "Games" }
   Scaffold(containerColor = Navy, topBar = {
-   Column(Modifier.fillMaxWidth().background(Navy).statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
+   Column(Modifier.fillMaxWidth().background(Navy).statusBarsPadding().padding(horizontal = 20.dp, vertical = if(landscape) 0.dp else 4.dp)) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-     Image(painterResource(R.drawable.station_logo), "Akito Station logo", Modifier.size(44.dp))
-     Column(Modifier.padding(start = 12.dp).weight(1f)) { Text("Akito Station", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Text("アキト・ステーション", style = MaterialTheme.typography.labelSmall, color = Cyan) }
-     IconButton(onClick = { folderPicker.launch(null) }, enabled = !state.busy) { Icon(Icons.Default.CreateNewFolder, "Add library") }
+     Image(painterResource(state.logo.resource), "Akito Station logo", Modifier.size(if(landscape) 36.dp else 40.dp))
+     if(shortLandscape) {
+      OutlinedTextField(query, { query = it }, placeholder = { Text("Search games") }, singleLine = true, modifier = Modifier.weight(1f))
+      IconButton(onClick = { controlsExpanded = !controlsExpanded }) { Icon(Icons.Default.Tune, "Filters") }
+      GridSizeSelector(state.density, model::density)
+      var navigationMenu by remember { mutableStateOf(false) }
+      Box {
+       IconButton(onClick = { navigationMenu = true }) { Icon(Icons.Default.MoreVert, "Navigation and library actions") }
+       DropdownMenu(navigationMenu, { navigationMenu = false }) {
+        listOf("Games", "Consoles", "Settings").forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = { page = name; navigationMenu = false }) }
+        DropdownMenuItem(text = { Text("Add library") }, enabled = !state.busy, onClick = { folderPicker.launch(null); navigationMenu = false })
+        DropdownMenuItem(text = { Text("Scrape Box Art") }, onClick = { scrapeSetup = true; navigationMenu = false })
+        DropdownMenuItem(text = { Text(if(state.busy) "Cancel scan" else "Refresh library") }, onClick = { if(state.busy) model.cancelScan() else model.scan(); navigationMenu = false })
+       }
+      }
+     }
+     if(!shortLandscape && (!landscape || configuration.screenWidthDp >= 600)) Column(Modifier.padding(start = 12.dp).weight(1f)) { Text("Akito Station", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Text("アキト・ステーション", style = MaterialTheme.typography.labelSmall, color = Cyan) }
+     if(landscape && !shortLandscape && configuration.screenWidthDp < 600) Spacer(Modifier.weight(1f))
+     if(landscape && !shortLandscape) listOf("Games" to Icons.Default.GridView, "Consoles" to Icons.Default.SportsEsports, "Settings" to Icons.Default.Settings).forEach { (name, icon) ->
+      IconButton(onClick = { page = name }) { Icon(icon, name, tint = if(page == name) Cyan else MaterialTheme.colorScheme.onSurface) }
+     }
+     if(!shortLandscape) IconButton(onClick = { folderPicker.launch(null) }, enabled = !state.busy) { Icon(Icons.Default.CreateNewFolder, "Add library") }
+     if(landscape && !shortLandscape) IconButton(onClick = { if(state.busy) model.cancelScan() else model.scan() }) { Icon(if(state.busy) Icons.Default.Close else Icons.Default.Refresh, if(state.busy) "Cancel scan" else "Refresh library") }
     }
    }
   }, bottomBar = {
-   NavigationBar(containerColor = Navy) {
+   if(!landscape) NavigationBar(containerColor = Navy) {
     listOf("Games" to Icons.Default.GridView, "Consoles" to Icons.Default.SportsEsports, "Settings" to Icons.Default.Settings).forEach { (name, icon) ->
      NavigationBarItem(selected = page == name, onClick = { page = name }, icon = { Icon(icon, name) }, label = { Text(name) })
     }
@@ -71,19 +100,21 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    Box(Modifier.fillMaxSize().padding(padding).background(Brush.linearGradient(listOf(Color(0xFF181330), Navy, Color(0xFF050917))))) {
     when(page) {
      "Games" -> Column(Modifier.fillMaxSize()) {
-      Text("Your collection", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-      OutlinedTextField(query, { query = it }, label = { Text("Search games or systems") }, leadingIcon = { Icon(Icons.Default.Search, null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
-      Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-       LibraryFilter.entries.forEach { f -> FilterChip(filter == f, { filter = f }, label = { Text(when(f) { LibraryFilter.ALL -> "All games"; LibraryFilter.FAVORITES -> "Favorites"; LibraryFilter.RECENT -> "Recently launched" }) }) }
+      if(!landscape) Text("Your collection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
+      if(!shortLandscape) Row(Modifier.fillMaxWidth().then(if(!landscape) Modifier.horizontalScroll(rememberScrollState()) else Modifier).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+       if(landscape) OutlinedTextField(query, { query = it }, placeholder = { Text("Search games or systems") }, leadingIcon = { Icon(Icons.Default.Search, null) }, singleLine = true, modifier = Modifier.weight(1f))
+       TextButton(onClick = { controlsExpanded = !controlsExpanded }) { Icon(Icons.Default.Tune, null); Text("Filters") }
+       GridSizeSelector(state.density, model::density)
+       IconButton(onClick = { scrapeSetup = true }, enabled = state.scrape?.complete != false) { Icon(Icons.Default.Image, "Scrape Box Art") }
       }
-      Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-       SystemPicker(system, { system = it }, allowAll = true, modifier = Modifier.weight(1f))
-       var sortMenu by remember { mutableStateOf(false) }
-       Box { TextButton(onClick = { sortMenu = true }) { Icon(Icons.Default.Sort, null); Text("Sort") }; DropdownMenu(sortMenu, { sortMenu = false }) { SortOrder.entries.forEach { s -> DropdownMenuItem(text = { Text(s.name.lowercase().replaceFirstChar { it.uppercase() }) }, onClick = { model.sort(s); sortMenu = false }) } } }
-      }
-      Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-       GridSizeSelector(state.density, model::density, Modifier.weight(1f))
-       TextButton(onClick = { scrapeSetup = true }, enabled = state.scrape?.complete != false) { Text("Scrape Box Art") }
+      if(!landscape) OutlinedTextField(query, { query = it }, label = { Text("Search games or systems") }, leadingIcon = { Icon(Icons.Default.Search, null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
+      if(controlsExpanded) {
+       Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LibraryFilter.entries.forEach { f -> FilterChip(filter == f, { filter = f }, label = { Text(when(f) { LibraryFilter.ALL -> "All games"; LibraryFilter.FAVORITES -> "Favorites"; LibraryFilter.RECENT -> "Recently launched" }) }) }
+        SystemPicker(system, { system = it }, allowAll = true, modifier = Modifier.width(180.dp))
+        var sortMenu by remember { mutableStateOf(false) }
+        Box { TextButton(onClick = { sortMenu = true }) { Icon(Icons.Default.Sort, null); Text("Sort") }; DropdownMenu(sortMenu, { sortMenu = false }) { SortOrder.entries.forEach { s -> DropdownMenuItem(text = { Text(s.name.lowercase().replaceFirstChar { it.uppercase() }) }, onClick = { model.sort(s); sortMenu = false }) } } }
+       }
       }
       if(reviewIds != null) TextButton(onClick = { reviewIds = null }) { Text("Review missing artwork · Clear filter") }
       val games = remember(state.games, query, filter, system, state.sort, reviewIds) { visibleGames(state.games, query, filter, system, state.sort).filter { reviewIds == null || it.id in reviewIds!! } }
@@ -99,11 +130,11 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
        }
       } else if(games.isEmpty()) { Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { Text("No games match these filters") } }
       else LibraryGrid(games, state.density, Modifier.weight(1f)) { selectedId = it.id }
-      Row(Modifier.fillMaxWidth().background(Color.Black.copy(alpha = .2f)).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+      Row(Modifier.fillMaxWidth().then(if(landscape) Modifier.height(24.dp) else Modifier).background(Color.Black.copy(alpha = .2f)).padding(horizontal = 20.dp, vertical = 0.dp), verticalAlignment = Alignment.CenterVertically) {
        if(state.busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
        Text(state.activity, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f).padding(start = 8.dp))
        Text("${games.size} games", style = MaterialTheme.typography.labelSmall)
-       IconButton(onClick = { if(state.busy) model.cancelScan() else model.scan() }) { Icon(if(state.busy) Icons.Default.Close else Icons.Default.Refresh, if(state.busy) "Cancel scan" else "Refresh library") }
+       if(!landscape) IconButton(onClick = { if(state.busy) model.cancelScan() else model.scan() }) { Icon(if(state.busy) Icons.Default.Close else Icons.Default.Refresh, if(state.busy) "Cancel scan" else "Refresh library") }
       }
      }
      "Consoles" -> ConsolesScreen(state, model)
@@ -129,10 +160,11 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
   if(state.message != null) AlertDialog(onDismissRequest = model::dismiss, title = { Text("Akito Station") }, text = { Text(state.message!!) }, confirmButton = { TextButton(onClick = model::dismiss) { Text("OK") } })
  }
 }
+}
 @Composable internal fun GameCard(game: Game, modifier: Modifier = Modifier, onClick: () -> Unit) {
- Card(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF17172D))) {
+ Card(onClick = onClick, modifier = modifier.testTag("game-${game.id}").heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF17172D))) {
   Box(Modifier.fillMaxWidth().aspectRatio(.72f).background(Brush.verticalGradient(listOf(Color(0xFF292044), Navy))), contentAlignment = Alignment.Center) {
-   if(game.artwork.isNotBlank()) AsyncImage(game.artwork, "Cover for ${game.displayTitle}", Modifier.fillMaxSize(), contentScale = ContentScale.Fit, error = painterResource(R.drawable.station_logo))
+   if(game.artwork.isNotBlank()) AsyncImage(game.artwork, "Cover for ${game.displayTitle}", Modifier.fillMaxSize(), contentScale = ContentScale.Fit, error = painterResource(LocalAppLogo.current.resource))
    else Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) { Icon(Icons.Default.SportsEsports, null, Modifier.size(32.dp), tint = Cyan.copy(alpha = .7f)); Text(game.system.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)) }
    if(game.favorite) Icon(Icons.Default.Favorite, "Favorite", tint = Red, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
   }
@@ -268,6 +300,19 @@ private val StationColors = darkColorScheme(primary = Cyan, secondary = Red, bac
    Button(onClick = addFolder, enabled = !state.busy) { Text("Add library folder") }
    state.roots.forEach { root -> Row(verticalAlignment = Alignment.CenterVertically) { Text(root.name, Modifier.weight(1f)); TextButton(onClick = { removing = root }, enabled = !state.busy) { Text("Unregister") } } }
    Text("Missing files stay in your library so metadata survives disconnected storage. Reconnect the volume or reselect its folder before launching.", style = MaterialTheme.typography.bodySmall)
+  } }
+  item { SettingsPanel("Appearance") {
+   Text("App Logo", style = MaterialTheme.typography.titleMedium)
+   AppLogo.entries.chunked(3).forEach { logos -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    logos.forEach { logo -> OutlinedButton(onClick = { model.logo(logo) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(4.dp)) {
+     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Image(painterResource(logo.resource), logo.label, Modifier.size(64.dp))
+      Text(logo.label + if(logo == state.logo) " ✓" else "", style = MaterialTheme.typography.labelSmall)
+     }
+    } }
+    repeat(3 - logos.size) { Spacer(Modifier.weight(1f)) }
+   } }
+   Text("Launcher refresh timing depends on your launcher.", style = MaterialTheme.typography.bodySmall)
   } }
   item { SettingsPanel("Library view") { GridSizeSelector(state.density, model::density); Text("Density adapts to screen width and text size. Applies to every library filter.") } }
   item { SettingsPanel("Online cover art") { Text(CoverPrivacy); Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow online artwork search", Modifier.weight(1f)); Switch(state.onlineArtwork, model::onlineArtwork) } } }

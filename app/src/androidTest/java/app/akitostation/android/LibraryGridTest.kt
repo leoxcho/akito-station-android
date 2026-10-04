@@ -19,9 +19,9 @@ class LibraryGridTest {
   var density by mutableStateOf(LibraryDensity.FOUR)
   compose.setContent { MaterialTheme { Column { GridSizeSelector(density, { density = it }); LibraryGrid(games, density, Modifier.weight(1f)) {} } } }
   for(preset in LibraryDensity.entries) {
-   compose.onNodeWithText("View / Grid Size · ${density.label}").performClick()
+   compose.onNodeWithText("Grid · ${density.label}").performClick()
    compose.onNodeWithText(preset.label, substring = false).performClick()
-   compose.onNodeWithText("View / Grid Size · ${preset.label}").assertIsDisplayed()
+   compose.onNodeWithText("Grid · ${preset.label}").assertIsDisplayed()
    compose.onNode(hasScrollToIndexAction()).performScrollToIndex(9999)
    compose.onNodeWithText("Game 9999").assertIsDisplayed()
    compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
@@ -60,11 +60,11 @@ class LibraryGridTest {
    SideEffect { input.requestInputMode(androidx.compose.ui.input.InputMode.Keyboard) }
    MaterialTheme { GridSizeSelector(density, { density = it; selections++ }) }
   }
-  compose.onNodeWithText("View / Grid Size · 4×4").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.RequestFocus)
-  compose.onNodeWithText("View / Grid Size · 4×4").performKeyInput { pressKey(Key.Enter) }
+  compose.onNodeWithText("Grid · 4×4").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.RequestFocus)
+  compose.onNodeWithText("Grid · 4×4").performKeyInput { pressKey(Key.Enter) }
   compose.onNodeWithText("2×2").assertIsDisplayed()
   compose.onNodeWithText("2×2").performKeyInput { pressKey(Key.DirectionDown); pressKey(Key.Enter) }
   compose.runOnIdle { assertEquals(1, selections) }
-  compose.onNodeWithText("View / Grid Size · ${density.label}").assertIsDisplayed()
+  compose.onNodeWithText("Grid · ${density.label}").assertIsDisplayed()
  }
 }

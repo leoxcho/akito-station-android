@@ -47,6 +47,9 @@ class StationSettings(context: Context) {
    editor.putString("custom", encode(merged)).commit()
   }
  }
+ var logo: AppLogo
+  get() = runCatching { AppLogo.valueOf(prefs.getString("appLogo.v1", "AURORA")!!) }.getOrDefault(AppLogo.AURORA)
+  set(value) { check(prefs.edit().putString("appLogo.v1", value.name).commit()) }
  var onlineArtwork: Boolean get() = prefs.getBoolean("onlineArtworkConsent.v1", false); set(value) { prefs.edit().putBoolean("onlineArtworkConsent.v1", value).commit() }
  var density: LibraryDensity
   get() = runCatching { LibraryDensity.valueOf(prefs.getString("libraryDensity.v1", null) ?: if(compact) "FIVE" else "FOUR") }.getOrDefault(LibraryDensity.FOUR)

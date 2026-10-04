@@ -1,6 +1,6 @@
 # Akito Station for Android
 
-Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.3, build 4.
+Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.4, build 5 (release candidate).
 
 The Public edition provides a unified, local game library and explicit external emulator handoff. No emulator, game, BIOS, console firmware or encryption key is bundled. The dark navy/violet, red/cyan palette, Station logo, collection grid and library navigation follow the macOS Public reference. Android uses document-provider access instead of desktop filesystem paths.
 
@@ -22,7 +22,7 @@ Install JDK 17, Android SDK platform 36 and build-tools 36.0.0. Use `./gradlew c
 
 `assembleRelease` is **unsigned** without owner signing environment variables. See `Documentation/PRODUCTION_SIGNING.md` for the preferred fingerprint-checked offline signing script. Existing optional Gradle production signing accepts `AKITO_SIGNING_STORE`, `AKITO_SIGNING_STORE_PASSWORD`, `AKITO_SIGNING_ALIAS`, `AKITO_SIGNING_KEY_PASSWORD`. The owner controls the key; do not commit or ship it. Debug builds use Android's development key and are not production releases. Preserve one owner certificate for all future production updates.
 
-`Scripts/package-update.py` audits/stages the 1.0.3 source and unsigned candidate. `Scripts/package-candidate.py` prepares legacy local review assets and audits source/APK contents. It does not publish. SDK, Java, emulator images, caches, development keys, local logs and device data in `.tools/` are never included in the source archive or APK.
+`Scripts/package-update.py` audits/stages the 1.0.4 source and unsigned candidate. `Scripts/package-candidate.py` prepares legacy local review assets and audits source/APK contents. It does not publish. SDK, Java, emulator images, caches, development keys, local logs and device data in `.tools/` are never included in the source archive or APK.
 
 ## Runtime scope
 
@@ -52,6 +52,10 @@ Version 1.0.1 / code 2 retains app.akitostation.android and database schema 1. I
 DuckStation / PlayStation detection, automatic runtime routing, a multiple-emulator chooser, readable Consoles status and a simple Add Emulator picker. Technical registration is under Advanced / Custom Emulator. Existing manual known-runtime registrations migrate without duplicates; library schema, artwork, favorites, consent, preferences and storage grants are preserved. Install over production v1.0.1 without uninstalling.
 
 Validated with 139 JVM tests, phone/tablet 7/7 each, production signing, same-certificate upgrade and source/APK security/alignment checks. Physical hardware gameplay is being tested separately by the owner. See [runtime support](Documentation/RUNTIME_SUPPORT.md), [release notes](Documentation/Release/RELEASE-NOTES-v1.0.2.md) and [verification report](Documentation/Release/RELEASE-REPORT-v1.0.2.md).
+
+## Android 1.0.4 update
+
+Seven persistent Appearance → App Logo choices, compact landscape navigation and controls, and wider card gaps. The selected 2×2–6×6 density remains saved while columns adapt to viewport and text size. See [release notes](Documentation/Release/RELEASE-NOTES-v1.0.4.md). Production signing and publication are pending.
 
 ## Android 1.0.3 update
 

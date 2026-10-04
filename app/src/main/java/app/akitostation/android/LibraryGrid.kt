@@ -11,11 +11,12 @@ import androidx.compose.ui.focus.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collect
 
 @Composable fun GridSizeSelector(density: LibraryDensity, select: (LibraryDensity) -> Unit, modifier: Modifier = Modifier) {
  var expanded by remember { mutableStateOf(false) }
  Box(modifier) {
-  TextButton(onClick = { expanded = true }) { Text("View / Grid Size · ${density.label}") }
+  TextButton(onClick = { expanded = true }) { Text("Grid · ${density.label}") }
   DropdownMenu(expanded, { expanded = false }) {
    LibraryDensity.entries.forEach { preset -> DropdownMenuItem(text = { Text(preset.label) }, onClick = { select(preset); expanded = false }) }
   }
@@ -34,8 +35,24 @@ import androidx.compose.ui.unit.dp
  }
  BoxWithConstraints(modifier.fillMaxWidth()) {
   val columns = density.columns(maxWidth.value, fontScale)
+  var previousWidth by rememberSaveable { mutableStateOf(maxWidth.value) }
+  var anchorId by rememberSaveable { mutableStateOf<String?>(null) }
+  var adapting by remember { mutableStateOf(previousWidth != maxWidth.value) }
+  LaunchedEffect(maxWidth.value) {
+   if(previousWidth != maxWidth.value) {
+    adapting = true
+    val index = games.indexOfFirst { it.id == anchorId }
+    if(index >= 0) gridState.scrollToItem(index)
+    previousWidth = maxWidth.value
+    adapting = false
+   }
+  }
+  LaunchedEffect(gridState) {
+   snapshotFlow { gridState.layoutInfo.visibleItemsInfo.firstOrNull { it.offset.y + it.size.height > 0 }?.key as? String }
+    .collect { id -> if(!adapting && id != null) anchorId = id }
+  }
   LazyVerticalGrid(columns = GridCells.Fixed(columns), state = gridState, contentPadding = PaddingValues(20.dp),
-   horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize().testTag("library-grid-$columns")) {
+   horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp), modifier = Modifier.fillMaxSize().testTag("library-grid-$columns")) {
    items(games, key = { it.id }, contentType = { "game" }) { game ->
     val restoring = restoreId == game.id
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
