@@ -1,6 +1,6 @@
 # Akito Station for Android
 
-Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.5, build 6 (hotfix candidate).
+Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.5, build 6.
 
 The Public edition provides a unified, local game library and explicit external emulator handoff. No emulator, game, BIOS, console firmware or encryption key is bundled. The dark navy/violet, red/cyan palette, Station logo, collection grid and library navigation follow the macOS Public reference. Android uses document-provider access instead of desktop filesystem paths.
 
@@ -66,3 +66,5 @@ Validated with 155 JVM tests, phone/tablet 13/13 each, same-certificate producti
 ## Android 1.0.5 hotfix
 
 Launcher alias names use the fixed manifest namespace so logo switching works after release optimization. Run `Scripts/build.sh assembleReleaseCheck` for an isolated, optimized UI test installation; then run `python3 Scripts/verify-logo-release.py`. Production signing uses the existing owner certificate.
+
+Production-signed hotfix: [Android 1.0.5](https://github.com/leoxcho/akito-station-android/releases/tag/android-v1.0.5).

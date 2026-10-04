@@ -28,6 +28,8 @@ for label in labels:
     tap(label)
     assert any(n.get('text') == label + ' ✓' for n in window().iter('node')), 'Selection failed: ' + label
     result = run('shell', 'cmd', 'package', 'query-activities', '--brief', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', args.package)
+    # Android abbreviates components in the application's own package.
+    result = result.replace('/.Logo', '/app.akitostation.android.Logo')
     aliases = re.findall(r'app\.akitostation\.android\.Logo[A-Z]+', result)
     assert aliases == ['app.akitostation.android.Logo' + label.upper()], result
     run('shell', 'am', 'force-stop', args.package)
