@@ -1,6 +1,6 @@
 # Akito Station for Android
 
-Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.4, build 5 (release candidate).
+Native Kotlin / Jetpack Compose edition of Akito Station. Android 8.0 (API 26) or newer; ARM64 packaging. Version 1.0.4, build 5.
 
 The Public edition provides a unified, local game library and explicit external emulator handoff. No emulator, game, BIOS, console firmware or encryption key is bundled. The dark navy/violet, red/cyan palette, Station logo, collection grid and library navigation follow the macOS Public reference. Android uses document-provider access instead of desktop filesystem paths.
 
@@ -55,7 +55,7 @@ Validated with 139 JVM tests, phone/tablet 7/7 each, production signing, same-ce
 
 ## Android 1.0.4 update
 
-Seven persistent Appearance → App Logo choices, compact landscape navigation and controls, and wider card gaps. The selected 2×2–6×6 density remains saved while columns adapt to viewport and text size. See [release notes](Documentation/Release/RELEASE-NOTES-v1.0.4.md). Production signing and publication are pending.
+Seven persistent Appearance → App Logo choices, compact landscape navigation and controls, and wider card gaps. The selected 2×2–6×6 density remains saved while columns adapt to viewport and text size. See [release notes](Documentation/Release/RELEASE-NOTES-v1.0.4.md). Production-signed release: [Android 1.0.4](https://github.com/leoxcho/akito-station-android/releases/tag/android-v1.0.4).
 
 ## Android 1.0.3 update
 
